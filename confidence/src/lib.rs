@@ -7,52 +7,52 @@ pub struct Stats {
     pub mean: f64,
     pub std_dev: f64,
 }
+
 impl Stats {
     fn var(self) -> f64 {
         self.std_dev * self.std_dev
     }
 }
 
-// fn t_value(x: Stats, y: Stats) -> f64 {
-//     assert!(x.count > 1);
-//     assert!(y.count > 1);
-//     (x.mean - y.mean) / pooled_variance(x, y).sqrt()
-// }
+#[derive(Clone, PartialEq, Debug)]
+pub struct ConfidenceInterval {
+    pub center: f64,
+    pub radius: f64,
+}
+
+impl fmt::Display for ConfidenceInterval {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} ± {}", self.center, self.radius)
+    }
+}
+
+pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> ConfidenceInterval {
+    assert!(x.count > 1);
+    assert!(y.count > 1);
+    let alpha = 1. - sig_level;
+    let p = 1. - (alpha / 2.);
+    let v = degrees_of_freedom(x, y);
+    let t = student_t_inv_cdf(p, v);
+    let s = pooled_variance(x, y);
+    let center = y.mean - x.mean;
+    let radius = t * s.sqrt();
+    dbg!(p, v, t, s.sqrt(), radius);
+    ConfidenceInterval { center, radius }
+}
 
 fn pooled_variance(x: Stats, y: Stats) -> f64 {
     x.var() / x.count as f64 + y.var() / y.count as f64
 }
 
-pub fn degrees_of_freedom(x: Stats, y: Stats) -> f64 {
-    assert!(x.count > 1);
-    assert!(y.count > 1);
+fn degrees_of_freedom(x: Stats, y: Stats) -> f64 {
     let var = pooled_variance(x, y);
     let bar = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
     let qux = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
     var * var / (bar + qux)
 }
 
-pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> ConfidenceInterval {
-    let v = degrees_of_freedom(x, y);
-    let p = 1. - sig_level / 2.;
-    let foo = pooled_variance(x, y) / ((x.count + y.count) as f64).sqrt();
-    let half_width = foo * student_t_inv_cdf(p, v);
-    let center = y.mean - x.mean;
-    ConfidenceInterval { center, half_width }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct ConfidenceInterval {
-    pub center: f64,
-    pub half_width: f64,
-}
-impl fmt::Display for ConfidenceInterval {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ± {}", self.center, self.half_width)
-    }
-}
-
-pub fn student_t_inv_cdf(p: f64, dof: f64) -> f64 {
+/// p is the one-sided confidence level.
+fn student_t_inv_cdf(p: f64, dof: f64) -> f64 {
     assert!(p >= 0.0 && p <= 1.0);
     let x = 2. * p.min(1. - p);
     let a = 0.5 * dof;
@@ -84,10 +84,82 @@ mod tests {
             std_dev: 1.5,
         };
 
-        assert_eq!(confidence_interval(0.9, s1, s2), ConfidenceInterval{ center: 1., half_width: 0.009281150769310355});
-        assert_eq!(confidence_interval(0.95, s1, s2), ConfidenceInterval{ center: 1., half_width: 0.0046305255960353365});
-        assert_eq!(confidence_interval(0.99, s1, s2), ConfidenceInterval{ center: 1., half_width: 0.0009254655856945125});
+        assert_eq!(
+            confidence_interval(0.9, s1, s2).to_string(),
+            "1 ± 0.9965524858858822"
+        );
+        assert_eq!(
+            confidence_interval(0.95, s1, s2).to_string(),
+            "1 ± 1.2105369242089183"
+        );
+        assert_eq!(
+            confidence_interval(0.99, s1, s2).to_string(),
+            "1 ± 1.6695970385386512"
+        );
     }
+
+    #[test]
+    fn onlinestatbook() {
+        // From http://onlinestatbook.com/2/estimation/difference_means.html
+        let females = Stats {
+            count: 17,
+            mean: 5.353,
+            std_dev: 2.743f64.sqrt(),
+        };
+        let males = Stats {
+            count: 17,
+            mean: 3.882,
+            std_dev: 2.985f64.sqrt(),
+        };
+        assert_eq!(degrees_of_freedom(males, females), 31.942983547676025);
+        assert_eq!(
+            student_t_inv_cdf(0.975, 31.773948759590525),
+            2.037501835321414
+        );
+        assert_eq!(pooled_variance(males, females).sqrt(), 0.5804663439602576);
+        assert_eq!(
+            confidence_interval(0.95, males, females).to_string(),
+            "1.4709999999999996 ± 1.1824540265693928"
+        );
+    }
+
+    #[test]
+    fn zar() {
+        // From Zar (1984) page 132
+        let x = Stats {
+            count: 6,
+            mean: 10.,
+            std_dev: 0.7206,
+        };
+        let y = Stats {
+            count: 7,
+            mean: 15.,
+            std_dev: 0.7206,
+        };
+        assert_eq!(
+            confidence_interval(0.95, x, y).to_string(),
+            "5 ± 0.8854529371346332"
+        );
+    }
+
+    // #[test]
+    // fn nist() {
+    //     // From the worked example at https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm
+    //     let x = Stats {
+    //         count: 100,
+    //         mean: 10.,
+    //         std_dev: 0.022789,
+    //     };
+    //     let y = Stats {
+    //         count: 95,
+    //         mean: 19.261460,
+    //         std_dev: 0.022789,
+    //     };
+    //     assert_eq!(
+    //         confidence_interval(0.95, x, y).to_string(),
+    //         "9.26146 ± 0.0032187032419323048"
+    //     );
+    // }
 
     #[test]
     fn t_table() {
