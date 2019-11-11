@@ -32,6 +32,20 @@ There's some stuff in this repo which might help you implement a scheme like
 the one I described, but to be honest it's not that hard and the setup will
 depend a lot on how your benchmarks look.
 
+## Stats
+
+We're comparing the means of two unknown distributions.  Both distributions
+are roughly normal, but their means and variances may be different.  (This is
+typically the case when benchmarking; of course, if your benchmark calls
+`sleep(random_log_normal())` then this isn't a valid assumption.  Don't do
+that.)  The appropriate test in this case is Student's t-test.
+
+We don't only care about whether a regression has occurred, however: we also
+care about how big the regression is.  Therefore, a confidence interval is
+going to be more useful than a p-value.  For this you'll need the inverse CDF
+of the t-distribution.  There are various implementations around, including
+one in this repo.
+
 ## Common bad practice
 
 ### Benchmarking commit A, then benchmarking commit B
