@@ -1,5 +1,5 @@
+use serde::Deserialize;
 use statrs::distribution::{StudentsT, Univariate};
-use statrs::statistics::Statistics;
 use std::io::{BufWriter, Write};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -8,63 +8,57 @@ fn main() -> Result<()> {
     let stdout = std::io::stdout();
     let mut stdout = BufWriter::new(stdout.lock());
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
-
-    // Parse the header row
-    let mut hdrs = rdr.headers()?.into_iter();
-    let key_hdr = hdrs.next().unwrap();
-    eprintln!("Grouping by {}", key_hdr);
-    write!(stdout, "{}", key_hdr)?;
-    let mut num_cols = 0;
-    for hdr in hdrs {
-        num_cols += 1;
-        write!(stdout, ",{}", hdr)?;
-    }
-    let mut vals: Vec<f64> = vec![];
-
-    // handle the first group
-    let mut row = csv::StringRecord::new();
-    rdr.read_record(&mut row)?;
-    let mut this_key: String = row[0].to_string();
-    handle_row(&mut this_key, &mut vals, &row, &mut stdout)?;
-
-    for row in rdr.into_records() {
-        println!("ok");
+    let key_label = &rdr.headers()?[0];
+    writeln!(stdout, "{},p-value", key_label)?;
+    let mut last = None;
+    for row in rdr.deserialize::<(String, usize, f64, f64)>() {
+        let (key, count, mean, stddev) = row?;
+        let stats = Stats {
+            count,
+            mean,
+            stddev,
+        };
+        if let Some(last_stats) = last {
+            let p_value = t_test(last_stats, stats);
+            writeln!(stdout, "{},{}", key, p_value)?;
+        }
+        last = Some(stats);
     }
     Ok(())
 }
 
-fn handle_row(this_key: &mut String, vals: &mut Vec<f64>, row: &csv::StringRecord, mut stdout: impl Write) -> Result<()> {
-    let mut row_iter = row.iter();
-    let key = row_iter.next().unwrap();
-    if key != *this_key {
-        write!(stdout, "done for {}", this_key)?;
-        *this_key = key.to_string();
-        vals.clear();
+#[derive(Deserialize, Clone, Copy)]
+struct Stats {
+    count: usize,
+    mean: f64,
+    stddev: f64,
+}
+impl Stats {
+    fn var(&self) -> f64 {
+        self.stddev * self.stddev
     }
-    for x in row_iter {
-        vals.push(x.parse::<f64>()?);
-    }
-    Ok(())
 }
 
 /// Uses a one-tailed Welch's t-test to test whether the population mean of
 /// xs2 is greater than the population mean of xs1.  Returns the probability
 /// that the new mean is greater.
-pub fn t_test(xs1: &[f64], xs2: &[f64]) -> f64 {
-    assert!(xs1.len() > 1);
-    assert!(xs2.len() > 1);
-    let n1 = xs1.len();
-    let n2 = xs2.len();
-    let mean1 = xs1.mean();
-    let mean2 = xs2.mean();
-    let var1 = xs1.variance();
-    let var2 = xs2.variance();
-    let foo = var1 / n1 as f64 + var2 / n2 as f64;
-    let t = (mean1 - mean2) / foo.sqrt();
-    let v = foo * foo
-        / (var1 * var1 / (n1 * n1 * (n1 - 1)) as f64 + var2 * var2 / (n2 * n2 * (n2 - 1)) as f64);
+fn t_test(x1: Stats, x2: Stats) -> f64 {
+    assert!(x1.count > 1);
+    assert!(x2.count > 1);
+    let foo = x1.var() / x1.count as f64 + x2.var() / x2.count as f64;
+    let t = (x1.mean - x2.mean) / foo.sqrt();
+    let v = degrees_of_freedom(x1, x2);
     let dist = StudentsT::new(0., 1., v).unwrap();
     dist.cdf(-t)
+}
+
+fn degrees_of_freedom(x1: Stats, x2: Stats) -> f64 {
+    assert!(x1.count > 1);
+    assert!(x2.count > 1);
+    let foo = x1.var() / x1.count as f64 + x2.var() / x2.count as f64;
+    let bar = x1.var() * x1.var() / (x1.count * x1.count * (x1.count - 1)) as f64;
+    let qux = x2.var() * x2.var() / (x2.count * x2.count * (x2.count - 1)) as f64;
+    foo * foo / (bar + qux)
 }
 
 #[cfg(test)]
