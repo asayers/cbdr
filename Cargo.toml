@@ -1,2 +1,2 @@
 [workspace]
-members = ["csv-summarize", "csv-ttest", "diff-benches", "confidence"]
+members = ["csv-summarize", "csv-ttest", "diff-benches", "confidence", "bench-randomly"]

@@ -1,3 +1,4 @@
+use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
 use std::process::Command;
 use structopt::StructOpt;
@@ -16,18 +17,27 @@ fn main() {
 }
 fn main2() -> Result<(), Box<std::io::Error>> {
     let opts = Options::from_args();
+
+    let mut stats = BTreeSet::new();
     for (idx, bench) in opts.benches.iter().enumerate() {
         eprintln!("Warming up {}...", idx);
-        Command::new("/bin/sh")
+        let out = Command::new("/bin/sh")
             .arg("-c")
             .arg(bench)
             .output()
-            .unwrap();
+            .unwrap()
+            .stdout;
+        let results: HashMap<String, f64> = serde_json::from_slice(&out).unwrap();
+        stats.extend(results.keys().cloned());
     }
 
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
-    writeln!(stdout, "idx,measurement")?;
+    stdout.write_all(b"idx")?;
+    for stat in &stats {
+        write!(stdout, ",{}", stat)?;
+    }
+    stdout.write_all(b"\n")?;
     loop {
         let idx = rand::random::<usize>() % opts.benches.len();
         let out = Command::new("/bin/sh")
@@ -36,7 +46,11 @@ fn main2() -> Result<(), Box<std::io::Error>> {
             .output()
             .unwrap()
             .stdout;
-        write!(stdout, "{},", idx)?;
-        stdout.write_all(&out)?;
+        let results: HashMap<String, f64> = serde_json::from_slice(&out).unwrap();
+        write!(stdout, "{}", idx)?;
+        for stat in &stats {
+            write!(stdout, ",{}", results.get(stat).unwrap_or(&std::f64::NAN))?;
+        }
+        stdout.write_all(b"\n")?;
     }
 }
