@@ -22,13 +22,14 @@ pub struct ConfidenceInterval {
 
 impl fmt::Display for ConfidenceInterval {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ± {}", self.center, self.radius)
+        write!(f, "{:.16} ± {:.16}", self.center, self.radius)
     }
 }
 
-pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> ConfidenceInterval {
-    assert!(x.count > 1);
-    assert!(y.count > 1);
+pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Option<ConfidenceInterval> {
+    if x.count <= 1 || y.count <= 1 {
+        return None;
+    }
     let alpha = 1. - sig_level;
     let p = 1. - (alpha / 2.);
     let v = degrees_of_freedom(x, y);
@@ -36,8 +37,7 @@ pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> ConfidenceInte
     let s = pooled_variance(x, y);
     let center = y.mean - x.mean;
     let radius = t * s.sqrt();
-    dbg!(p, v, t, s.sqrt(), radius);
-    ConfidenceInterval { center, radius }
+    Some(ConfidenceInterval { center, radius })
 }
 
 fn pooled_variance(x: Stats, y: Stats) -> f64 {
