@@ -14,7 +14,7 @@ impl Stats {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub struct ConfidenceInterval {
     pub center: f64,
     pub radius: f64,

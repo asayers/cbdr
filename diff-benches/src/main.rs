@@ -1,6 +1,8 @@
 use ansi_term::{Color, Style};
 use confidence::*;
+use log::*;
 use std::collections::HashMap;
+use std::io::Write;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -10,9 +12,12 @@ struct Options {
     #[structopt(short, long, default_value = "0.95")]
     significance_level: f64,
     comparisons: Vec<String>,
+    #[structopt(short, long)]
+    csv: bool,
 }
 
 fn main() {
+    env_logger::init();
     let opts = Options::from_args();
     main2(opts).unwrap();
 }
@@ -36,14 +41,17 @@ fn main2(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
         .skip(1)
         .map(|x| x.to_string())
         .collect::<Vec<_>>();
-    let mut state = State::new(comparisons, stat_names);
+    let mut state = State::new(comparisons, stat_names, opts.significance_level);
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
         let label = row.next().unwrap().to_string();
         state.update_measurements(&label, row.map(|x| x.parse().unwrap()));
-        state.update_cis(opts.significance_level);
-        state.print_status();
+        if log_enabled!(log::Level::Info) {
+            // state.print_status();
+            eprintln!("----------");
+            state.print_pretty(std::io::stderr())?;
+        }
 
         if let Some(t) = opts.threshold {
             if state.is_finished(t) {
@@ -51,7 +59,12 @@ fn main2(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    state.finalize();
+    let stdout = std::io::stdout();
+    if opts.csv {
+        state.print_csv(stdout)?;
+    } else {
+        state.print_pretty(stdout)?;
+    }
     Ok(())
 }
 
@@ -77,6 +90,7 @@ impl Measurements {
 }
 
 struct State {
+    significance_level: f64,
     comparisons: Vec<(String, String)>,
     stat_names: Vec<String>,
     measurements: HashMap<String, Measurements>,
@@ -85,12 +99,17 @@ struct State {
 }
 
 impl State {
-    fn new(comparisons: Vec<(String, String)>, stat_names: Vec<String>) -> State {
+    fn new(
+        comparisons: Vec<(String, String)>,
+        stat_names: Vec<String>,
+        significance_level: f64,
+    ) -> State {
         let mut cis = vec![];
         for _ in 0..comparisons.len() {
             cis.push(vec![None; stat_names.len()]);
         }
         State {
+            significance_level,
             measurements: HashMap::new(),
             cis,
             comparisons,
@@ -110,7 +129,8 @@ impl State {
         }
     }
 
-    fn update_cis(&mut self, significance_level: f64) {
+    fn update_cis(&mut self) {
+        let sig_level = self.significance_level;
         for (i, (from, to)) in self.comparisons.iter_mut().enumerate() {
             if let Some(from) = self.measurements.get(from) {
                 if let Some(to) = self.measurements.get(to) {
@@ -118,46 +138,29 @@ impl State {
                     self.cis[i].extend(
                         from.iter()
                             .zip(to.iter())
-                            .map(|(x, y)| confidence_interval(significance_level, x, y)),
+                            .map(|(x, y)| confidence_interval(sig_level, x, y)),
                     );
                 }
             }
         }
     }
 
-    fn print_status(&self) {
-        let num_measurements = self
-            .measurements
-            .iter()
-            .map(|(_, x)| x.count)
-            .collect::<Vec<_>>();
-        eprint!("{:03?}", num_measurements);
-        for cis in &self.cis {
-            for ci in cis {
-                match ci {
-                    None => eprint!("\t{}", Style::new().dimmed().paint("insufficient data")),
-                    Some(ref ci) if ci.center - ci.radius < 0. && 0. < ci.center + ci.radius => {
-                        eprint!("\t{:.6} ± {:.6}", ci.center, ci.radius,)
-                    }
-                    Some(ci) => eprint!(
-                        "\t{}{:.6} ± {:.6}{}",
-                        Color::Yellow.prefix(),
-                        ci.center,
-                        ci.radius,
-                        Color::Yellow.suffix()
-                    ),
-                }
-            }
-        }
-        eprintln!();
-    }
-
-    // fn all_cis(&self) -> impl Iterator<Item = Option<ConfidenceInterval>> {
-    //     let l = self.stat_names.len();
-    //     self.comparisons
-    //         .clone()
-    //         .into_iter()
-    //         .flat_map(|x| (0..l).map(|i| self.cis.get(&(x, i)).cloned()))
+    // // TODO: configurable logging
+    // fn print_status(&mut self) {
+    //     use std::fmt::Write;
+    //     self.update_cis();
+    //     let num_measurements = self
+    //         .measurements
+    //         .iter()
+    //         .map(|(_, x)| x.count)
+    //         .collect::<Vec<_>>();
+    //     let mut buf = String::new();
+    //     for cis in &self.cis {
+    //         for ci in cis {
+    //             write!(buf, "\t{}", PrettyCI(*ci)).unwrap();
+    //         }
+    //     }
+    //     info!("{:03?} {}", num_measurements, buf);
     // }
 
     fn is_finished(&self, threshold: f64) -> bool {
@@ -167,22 +170,71 @@ impl State {
         })
     }
 
-    fn finalize(self) {
-        print!("from,to");
-        for x in self.stat_names {
-            print!(",{}", x);
+    fn print_pretty(&mut self, stdout: impl Write) -> Result<(), Box<std::io::Error>> {
+        self.update_cis();
+        let mut stdout = tabwriter::TabWriter::new(stdout);
+        write!(stdout, "from\t\tto\t")?;
+        for x in &self.stat_names {
+            write!(stdout, " {:^21}", x)?;
         }
-        println!();
-        for (comp, cis) in self.comparisons.into_iter().zip(self.cis.into_iter()) {
-            print!("{},{}", comp.0, comp.1);
+        writeln!(stdout,)?;
+        for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
+            write!(stdout, "{}\t..\t{}\t", comp.0, comp.1)?;
+            for ci in cis {
+                write!(stdout, " {}", PrettyCI(*ci))?;
+            }
+            writeln!(stdout,)?;
+        }
+        stdout.flush()?;
+        Ok(())
+    }
+
+    fn print_csv(&mut self, mut stdout: impl Write) -> Result<(), Box<std::io::Error>> {
+        self.update_cis();
+        write!(stdout, "from,to")?;
+        for x in &self.stat_names {
+            write!(stdout, ",{}", x)?;
+        }
+        writeln!(stdout)?;
+        for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
+            write!(stdout, "{},{}", comp.0, comp.1)?;
             for ci in cis {
                 if let Some(ci) = ci {
-                    print!(",{}", ci);
+                    write!(stdout, ",{}", ci)?;
                 } else {
-                    print!(",insufficient data");
+                    write!(stdout, ",insufficient data")?;
                 }
             }
-            println!();
+            writeln!(stdout)?;
+        }
+        Ok(())
+    }
+}
+
+use std::fmt;
+// Always takes 21 characters
+struct PrettyCI(Option<ConfidenceInterval>);
+impl fmt::Display for PrettyCI {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(ci) = self.0 {
+            if ci.center - ci.radius < 0. && 0. < ci.center + ci.radius {
+                let center = format!("{:.3e}", ci.center);
+                let radius = format!("{:.3e}", ci.radius);
+                write!(f, "{:>9} ± {:<9}", center, radius)
+            } else {
+                let center = format!("{:.3e}", ci.center);
+                let radius = format!("{:.3e}", ci.radius);
+                write!(
+                    f,
+                    "{}{:>9} ± {:<9}{}",
+                    Color::Yellow.prefix(),
+                    center,
+                    radius,
+                    Color::Yellow.suffix()
+                )
+            }
+        } else {
+            write!(f, "{}", Style::new().dimmed().paint("  insufficient data "))
         }
     }
 }
