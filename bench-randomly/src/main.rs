@@ -27,7 +27,13 @@ fn main2() -> Result<(), Box<std::io::Error>> {
             .output()
             .unwrap()
             .stdout;
-        let results: HashMap<String, f64> = serde_json::from_slice(&out).unwrap();
+        let results: HashMap<String, f64> = match serde_json::from_slice(&out) {
+            Ok(x) => x,
+            Err(e) => {
+                eprintln!("{}", String::from_utf8_lossy(&out));
+                panic!(e);
+            }
+        };
         stats.extend(results.keys().cloned());
     }
 
