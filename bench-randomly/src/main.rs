@@ -13,7 +13,10 @@ fn main() {
     match main2() {
         Ok(()) => (),
         Err(ref e) if e.kind() == std::io::ErrorKind::BrokenPipe => (),
-        _ => std::process::exit(1),
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1)
+        }
     }
 }
 fn main2() -> Result<(), Box<std::io::Error>> {
