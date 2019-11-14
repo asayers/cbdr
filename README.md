@@ -17,9 +17,11 @@ you apply a particular patch.
 
 Without further ado, here's my method:
 
-1. Pick a pair of commits you care about
-2. Pick one at random and benchmark it, appending the results to your set of measurements
-3. Compute the 99% confidence interval for the diffence of the means
+1. Take a pair of commits you care about (presumably the tip of your branch
+   and the merge-base)
+2. Pick one at random and benchmark it, appending the results to your set
+   of measurements
+3. Compute the 95% confidence interval for the diffence of the means
 4. If the confidence interval is smaller than the smallest regression you
    care about, you're done.  If not, go to step 2.
 
@@ -89,3 +91,12 @@ Quoting the [Biostats handbook]:
 > comparing their confidence intervals, just use the correct statistical test.
 
 [Biostats handbook]: http://www.biostathandbook.com/confidence.html
+
+### Beware "±"
+
+Just because a program prints its output with a "± x" doesn't mean it's
+computing a confidence interval.  "±" could denote a standard deviatioon,
+or some percentile, or anything really since "±" doesn't have a fixed
+standardized meaning.  Having the variance of the measurements is well and
+good, but it doesn't help you decide whether the result is significant.
+Check your tools, and be skeptical if there's no mention of an "inverse CDF".
