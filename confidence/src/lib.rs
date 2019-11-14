@@ -3,7 +3,7 @@ pub mod student_t;
 use std::fmt;
 
 /// Statictics for a sample taken from a normally-distributed population.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Stats {
     pub count: usize,
     pub mean: f64,
@@ -24,7 +24,7 @@ pub struct ConfidenceInterval {
 
 impl fmt::Display for ConfidenceInterval {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.16} ± {:.16}", self.center, self.radius)
+        write!(f, "{} ± {}", self.center, self.radius)
     }
 }
 
