@@ -1,6 +1,7 @@
 use special::Beta;
 use std::fmt;
 
+/// Statictics for a sample taken from a normally-distributed population.
 #[derive(Clone, Copy)]
 pub struct Stats {
     pub count: usize,
@@ -26,22 +27,41 @@ impl fmt::Display for ConfidenceInterval {
     }
 }
 
+/// A confidence interval for `y.mean - x.mean`.
+///
+/// Given two normally distributed populations X ~ N(μ_x, σ²_x) and Y ~
+/// N(μ_y, σ²_y), Y-X is distributed as N(μ_y - μ_x, σ²_x + σ²_y).
+///
+/// We have a sample from X and a sample from Y and we want to use these to
+/// estimate μ_y - μ_x.
 pub fn confidence_interval(
     sig_level: f64,
     x: Stats,
     y: Stats,
 ) -> Result<ConfidenceInterval, Error> {
+    // Prevent division by zero (see "degrees of freedom")
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
     }
 
+    // Convert `sig_level`, which is two-sided, into `p`, which is one-sided
     let alpha = 1. - sig_level;
     let p = 1. - (alpha / 2.);
 
-    // pooled variance
+    // Variance of the difference between the means
+    //
+    // When estimating μ with a sample mean ̄x, the variance of this estimate
+    // is σ²/n, where n is the size of the sample.  Since we also don't know
+    // σ², we have to estimate the variance of the estimated mean by s²/n.
+    // In this case we want the variance of ̄y - ̄x.  We estimate it by
+    // s²_x/n_x + s²_y/n_y.
     let var = x.var() / x.count as f64 + y.var() / y.count as f64;
 
-    // degrees of freedom
+    // Degrees of freedom of `var`
+    //
+    // The degrees of freedom for s² is n-1.  To compute the pooled degrees
+    // of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
+    // the Welch–Satterthwaite equation.
     let k_x = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
     let k_y = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
     let v = var * var / (k_x + k_y);
@@ -57,8 +77,11 @@ pub enum Error {
     NotEnoughData,
 }
 
-/// p is the one-sided confidence level.
-fn student_t_inv_cdf(p: f64, dof: f64) -> f64 {
+/// The inverse CDF of Student's t-distribution.
+///
+/// `p` is the cumulative probability, and `dof` (aka. "ν") is the degrees
+/// of freedom (a parameter of the distribution).
+pub fn student_t_inv_cdf(p: f64, dof: f64) -> f64 {
     assert!(p >= 0.0 && p <= 1.0);
     let x = 2. * p.min(1. - p);
     let a = 0.5 * dof;
