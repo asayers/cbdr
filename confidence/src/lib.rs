@@ -34,29 +34,27 @@ pub fn confidence_interval(
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
     }
+
     let alpha = 1. - sig_level;
     let p = 1. - (alpha / 2.);
-    let v = degrees_of_freedom(x, y);
+
+    // pooled variance
+    let var = x.var() / x.count as f64 + y.var() / y.count as f64;
+
+    // degrees of freedom
+    let k_x = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
+    let k_y = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
+    let v = var * var / (k_x + k_y);
+
     let t = student_t_inv_cdf(p, v);
-    let s = pooled_variance(x, y);
+
     let center = y.mean - x.mean;
-    let radius = t * s.sqrt();
+    let radius = t * var.sqrt();
     Ok(ConfidenceInterval { center, radius })
 }
 
 pub enum Error {
     NotEnoughData,
-}
-
-fn pooled_variance(x: Stats, y: Stats) -> f64 {
-    x.var() / x.count as f64 + y.var() / y.count as f64
-}
-
-fn degrees_of_freedom(x: Stats, y: Stats) -> f64 {
-    let var = pooled_variance(x, y);
-    let bar = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
-    let qux = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
-    var * var / (bar + qux)
 }
 
 /// p is the one-sided confidence level.
@@ -119,12 +117,10 @@ mod tests {
             mean: 3.882,
             std_dev: 2.985f64.sqrt(),
         };
-        assert_eq!(degrees_of_freedom(males, females), 31.942983547676025);
         assert_eq!(
             student_t_inv_cdf(0.975, 31.773948759590525),
             2.037501835321414
         );
-        assert_eq!(pooled_variance(males, females).sqrt(), 0.5804663439602576);
         assert_eq!(
             confidence_interval(0.95, males, females).to_string(),
             "1.4709999999999996 ± 1.1824540265693928"
