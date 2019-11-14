@@ -14,6 +14,8 @@ struct Options {
     comparisons: Vec<String>,
     #[structopt(short, long)]
     csv: bool,
+    #[structopt(long)]
+    elide_from: bool,
 }
 
 fn main() {
@@ -50,7 +52,7 @@ fn main2(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
         if log_enabled!(log::Level::Info) {
             // state.print_status();
             eprintln!("----------");
-            state.print_pretty(std::io::stderr())?;
+            state.print_pretty(std::io::stderr(), opts.elide_from)?;
         }
 
         if let Some(t) = opts.threshold {
@@ -61,9 +63,9 @@ fn main2(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
     }
     let stdout = std::io::stdout();
     if opts.csv {
-        state.print_csv(stdout)?;
+        state.print_csv(stdout, opts.elide_from)?;
     } else {
-        state.print_pretty(stdout)?;
+        state.print_pretty(stdout, opts.elide_from)?;
     }
     Ok(())
 }
@@ -170,18 +172,31 @@ impl State {
         })
     }
 
-    fn print_pretty(&mut self, stdout: impl Write) -> Result<(), Box<std::io::Error>> {
+    fn print_pretty(
+        &mut self,
+        stdout: impl Write,
+        elide_from: bool,
+    ) -> Result<(), Box<std::io::Error>> {
         self.update_cis();
         let mut stdout = tabwriter::TabWriter::new(stdout);
-        write!(stdout, "from\t\tto\t")?;
+        if elide_from {
+            write!(stdout, "label\t")?;
+        } else {
+            write!(stdout, "from\t\tto\t")?;
+        }
         for x in &self.stat_names {
             write!(stdout, " {:^21}", x)?;
         }
         writeln!(stdout,)?;
+        let num_cis = self.comparisons.len() * self.stat_names.len();
         for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
-            write!(stdout, "{}\t..\t{}\t", comp.0, comp.1)?;
+            if elide_from {
+                write!(stdout, "{}\t", comp.1)?;
+            } else {
+                write!(stdout, "{}\t..\t{}\t", comp.0, comp.1)?;
+            }
             for ci in cis {
-                write!(stdout, " {}", PrettyCI(*ci))?;
+                write!(stdout, " {}", PrettyCI(*ci, num_cis))?;
             }
             writeln!(stdout,)?;
         }
@@ -189,15 +204,27 @@ impl State {
         Ok(())
     }
 
-    fn print_csv(&mut self, mut stdout: impl Write) -> Result<(), Box<std::io::Error>> {
+    fn print_csv(
+        &mut self,
+        mut stdout: impl Write,
+        elide_from: bool,
+    ) -> Result<(), Box<std::io::Error>> {
         self.update_cis();
-        write!(stdout, "from,to")?;
+        if elide_from {
+            write!(stdout, "label")?;
+        } else {
+            write!(stdout, "from,to")?;
+        }
         for x in &self.stat_names {
             write!(stdout, ",{}", x)?;
         }
         writeln!(stdout)?;
         for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
-            write!(stdout, "{},{}", comp.0, comp.1)?;
+            if elide_from {
+                write!(stdout, "{}", comp.1)?;
+            } else {
+                write!(stdout, "{},{}", comp.0, comp.1)?;
+            }
             for ci in cis {
                 if let Some(ci) = ci {
                     write!(stdout, ",{}", ci)?;
@@ -213,17 +240,30 @@ impl State {
 
 use std::fmt;
 // Always takes 21 characters
-struct PrettyCI(Option<ConfidenceInterval>);
+struct PrettyCI(
+    Option<ConfidenceInterval>,
+    usize, /* total number of CIs */
+);
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ci) = self.0 {
+            let (scale, suffix) = match ci.center {
+                x if x.abs() < 0.0001 => (1_000_000., "u"),
+                x if x.abs() < 0.1 => (1_000., "m"),
+                x if x.abs() >= 1_000. => (0.001, "k"),
+                x if x.abs() >= 1_000_000. => (0.000001, "M"),
+                _ => (1., ""),
+            };
+            let center = ci.center * scale;
+            let radius = ci.radius * scale;
+            let critical = ci.radius * self.1 as f64;
             if ci.center - ci.radius < 0. && 0. < ci.center + ci.radius {
-                let center = format!("{:.3e}", ci.center);
-                let radius = format!("{:.3e}", ci.radius);
+                let center = format!("{:.3}{}", center, suffix);
+                let radius = format!("{:.3}{}", radius, suffix);
                 write!(f, "{:>9} ± {:<9}", center, radius)
-            } else {
-                let center = format!("{:.3e}", ci.center);
-                let radius = format!("{:.3e}", ci.radius);
+            } else if ci.center - critical < 0. && 0. < ci.center + critical {
+                let center = format!("{:.3}{}", center, suffix);
+                let radius = format!("{:.3}{}", radius, suffix);
                 write!(
                     f,
                     "{}{:>9} ± {:<9}{}",
@@ -232,9 +272,24 @@ impl fmt::Display for PrettyCI {
                     radius,
                     Color::Yellow.suffix()
                 )
+            } else {
+                let center = format!("{:.3}{}", center, suffix);
+                let radius = format!("{:.3}{}", radius, suffix);
+                write!(
+                    f,
+                    "{}{:>9} ± {:<9}{}",
+                    Color::Red.prefix(),
+                    center,
+                    radius,
+                    Color::Red.suffix()
+                )
             }
         } else {
-            write!(f, "{}", Style::new().dimmed().paint("  insufficient data "))
+            write!(
+                f,
+                "{}",
+                Style::new().dimmed().paint("  insufficient data  ")
+            )
         }
     }
 }
