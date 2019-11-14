@@ -26,9 +26,13 @@ impl fmt::Display for ConfidenceInterval {
     }
 }
 
-pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Option<ConfidenceInterval> {
-    if x.count <= 1 || y.count <= 1 {
-        return None;
+pub fn confidence_interval(
+    sig_level: f64,
+    x: Stats,
+    y: Stats,
+) -> Result<ConfidenceInterval, Error> {
+    if x.count < 2 || y.count < 2 {
+        return Err(Error::NotEnoughData);
     }
     let alpha = 1. - sig_level;
     let p = 1. - (alpha / 2.);
@@ -37,7 +41,11 @@ pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Option<Confide
     let s = pooled_variance(x, y);
     let center = y.mean - x.mean;
     let radius = t * s.sqrt();
-    Some(ConfidenceInterval { center, radius })
+    Ok(ConfidenceInterval { center, radius })
+}
+
+pub enum Error {
+    NotEnoughData,
 }
 
 fn pooled_variance(x: Stats, y: Stats) -> f64 {

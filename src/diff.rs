@@ -135,7 +135,7 @@ impl State {
                     self.cis[i].extend(
                         from.iter()
                             .zip(to.iter())
-                            .map(|(x, y)| confidence_interval(sig_level, x, y)),
+                            .map(|(x, y)| confidence_interval(sig_level, x, y).ok()),
                     );
                 }
             }
