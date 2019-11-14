@@ -6,7 +6,7 @@ use std::io::Write;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
-struct Options {
+pub struct Options {
     #[structopt(short, long)]
     threshold: Option<f64>,
     #[structopt(short, long, default_value = "0.95")]
@@ -18,13 +18,7 @@ struct Options {
     elide_from: bool,
 }
 
-fn main() {
-    env_logger::init();
-    let opts = Options::from_args();
-    main2(opts).unwrap();
-}
-
-fn main2(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
+pub fn diff(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
     let comparisons = opts
         .comparisons
         .iter()

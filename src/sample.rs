@@ -4,24 +4,12 @@ use std::process::Command;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
-struct Options {
+pub struct Options {
     bench_prog: String,
     labels: Vec<String>,
 }
 
-fn main() {
-    match main2() {
-        Ok(()) => (),
-        Err(ref e) if e.kind() == std::io::ErrorKind::BrokenPipe => (),
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1)
-        }
-    }
-}
-fn main2() -> Result<(), Box<std::io::Error>> {
-    let opts = Options::from_args();
-
+pub fn sample(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
     let mut stats = BTreeSet::new();
     for label in &opts.labels {
         eprintln!("Warming up {}...", label);
