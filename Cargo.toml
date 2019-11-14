@@ -1,11 +1,11 @@
-[workspace]
-members = ["confidence"]
-
 [package]
 name = "cbdr"
+description = "Tools for comparitive benchmarking"
 version = "0.1.0"
 authors = ["Alex Sayers <alex@asayers.com>"]
 edition = "2018"
+license = "Unlicense"
+readme = "README.md"
 
 [dependencies]
 ansi_term = "0.12"
@@ -19,3 +19,6 @@ rolling-stats = "0.3"
 serde_json = "1.0"
 structopt = "0.3"
 tabwriter = "1.1"
+
+[workspace]
+members = ["confidence"]
