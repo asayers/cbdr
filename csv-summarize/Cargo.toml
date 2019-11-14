@@ -1,9 +1,0 @@
-[package]
-name = "csv-summarize"
-version = "0.1.0"
-authors = ["Alex Sayers <alex@asayers.com>"]
-edition = "2018"
-
-[dependencies]
-csv = "1.1"
-rolling-stats = "0.3"
