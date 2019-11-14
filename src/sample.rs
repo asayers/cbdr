@@ -1,3 +1,4 @@
+use anyhow::*;
 use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
 use std::process::Command;
@@ -9,7 +10,7 @@ pub struct Options {
     labels: Vec<String>,
 }
 
-pub fn sample(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
+pub fn sample(opts: Options) -> Result<()> {
     let mut stats = BTreeSet::new();
     for label in &opts.labels {
         eprintln!("Warming up {}...", label);
@@ -18,13 +19,8 @@ pub fn sample(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
             .output()
             .unwrap()
             .stdout;
-        let results: HashMap<String, f64> = match serde_json::from_slice(&out) {
-            Ok(x) => x,
-            Err(e) => {
-                eprintln!("{}", String::from_utf8_lossy(&out));
-                panic!(e);
-            }
-        };
+        let results: HashMap<String, f64> = serde_json::from_slice(&out)
+            .with_context(|| String::from_utf8_lossy(&out).into_owned())?;
         stats.extend(results.keys().cloned());
     }
 

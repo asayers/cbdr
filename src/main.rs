@@ -18,12 +18,13 @@ fn main() {
     match result {
         Ok(()) => (),
         Err(e) => {
+            // Ignore EPIPE
             if let Some(e) = e.downcast_ref::<std::io::Error>() {
                 if e.kind() == std::io::ErrorKind::BrokenPipe {
                     return ();
                 }
             }
-            eprintln!("{}", e);
+            eprintln!("Error: {}", e);
             std::process::exit(1)
         }
     }

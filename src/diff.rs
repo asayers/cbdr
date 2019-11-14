@@ -1,4 +1,5 @@
 use ansi_term::{Color, Style};
+use anyhow::*;
 use confidence::*;
 use log::*;
 use std::collections::HashMap;
@@ -18,7 +19,7 @@ pub struct Options {
     elide_from: bool,
 }
 
-pub fn diff(opts: Options) -> Result<(), Box<dyn std::error::Error>> {
+pub fn diff(opts: Options) -> Result<()> {
     let comparisons = opts
         .comparisons
         .iter()
