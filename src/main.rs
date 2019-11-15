@@ -1,4 +1,5 @@
 mod diff;
+mod pretty;
 mod sample;
 
 use structopt::StructOpt;
@@ -7,6 +8,7 @@ use structopt::StructOpt;
 enum Subcommand {
     Diff(diff::Options),
     Sample(sample::Options),
+    Pretty,
 }
 
 fn main() {
@@ -14,6 +16,7 @@ fn main() {
     let result = match Subcommand::from_args() {
         Subcommand::Diff(opts) => diff::diff(opts),
         Subcommand::Sample(opts) => sample::sample(opts),
+        Subcommand::Pretty => pretty::pretty(),
     };
     match result {
         Ok(()) => (),

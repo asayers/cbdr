@@ -16,6 +16,7 @@ env_logger = "0.7"
 log = "0.4"
 rand = "0.7"
 rolling-stats = "0.3"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 structopt = "0.3"
 tabwriter = "1.1"

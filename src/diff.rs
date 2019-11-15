@@ -1,8 +1,8 @@
-use ansi_term::{Color, Style};
 use anyhow::*;
 use confidence::*;
 use log::*;
-use std::collections::HashMap;
+use serde::*;
+use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 use structopt::StructOpt;
 
@@ -45,9 +45,8 @@ pub fn diff(opts: Options) -> Result<()> {
         let label = row.next().unwrap().to_string();
         state.update_measurements(&label, row.map(|x| x.parse().unwrap()));
         if log_enabled!(log::Level::Info) {
-            // state.print_status();
             eprintln!("----------");
-            state.print_pretty(std::io::stderr(), opts.elide_from)?;
+            state.print_csv(std::io::stderr(), opts.elide_from)?;
         }
 
         if let Some(t) = opts.threshold {
@@ -60,7 +59,7 @@ pub fn diff(opts: Options) -> Result<()> {
     if opts.csv {
         state.print_csv(stdout, opts.elide_from)?;
     } else {
-        state.print_pretty(stdout, opts.elide_from)?;
+        state.print_json(stdout)?;
     }
     Ok(())
 }
@@ -142,24 +141,6 @@ impl State {
         }
     }
 
-    // // TODO: configurable logging
-    // fn print_status(&mut self) {
-    //     use std::fmt::Write;
-    //     self.update_cis();
-    //     let num_measurements = self
-    //         .measurements
-    //         .iter()
-    //         .map(|(_, x)| x.count)
-    //         .collect::<Vec<_>>();
-    //     let mut buf = String::new();
-    //     for cis in &self.cis {
-    //         for ci in cis {
-    //             write!(buf, "\t{}", PrettyCI(*ci)).unwrap();
-    //         }
-    //     }
-    //     info!("{:03?} {}", num_measurements, buf);
-    // }
-
     fn is_finished(&self, threshold: f64) -> bool {
         self.cis.iter().all(|cis| {
             cis.iter()
@@ -167,35 +148,31 @@ impl State {
         })
     }
 
-    fn print_pretty(
-        &mut self,
-        stdout: impl Write,
-        elide_from: bool,
-    ) -> Result<(), Box<std::io::Error>> {
+    fn output(&mut self) -> Vec<Diff> {
         self.update_cis();
-        let mut stdout = tabwriter::TabWriter::new(stdout);
-        if elide_from {
-            write!(stdout, "label\t")?;
-        } else {
-            write!(stdout, "from\t\tto\t")?;
+        let significance_level = self.significance_level;
+        self.comparisons
+            .iter()
+            .zip(self.cis.iter())
+            .map(|(comp, cis)| Diff {
+                from: comp.0.clone(),
+                to: comp.1.clone(),
+                significance_level,
+                cis: self
+                    .stat_names
+                    .iter()
+                    .zip(cis.iter())
+                    .map(|(k, ci)| (k.clone(), ci.map(|ci| (ci.center, ci.radius))))
+                    .collect(),
+            })
+            .collect()
+    }
+
+    fn print_json(&mut self, mut stdout: impl Write) -> Result<()> {
+        for diff in self.output() {
+            serde_json::to_writer(&mut stdout, &diff)?;
+            writeln!(stdout)?;
         }
-        for x in &self.stat_names {
-            write!(stdout, " {:^21}", x)?;
-        }
-        writeln!(stdout,)?;
-        let num_cis = self.comparisons.len() * self.stat_names.len();
-        for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
-            if elide_from {
-                write!(stdout, "{}\t", comp.1)?;
-            } else {
-                write!(stdout, "{}\t..\t{}\t", comp.0, comp.1)?;
-            }
-            for ci in cis {
-                write!(stdout, " {}", PrettyCI(*ci, num_cis))?;
-            }
-            writeln!(stdout,)?;
-        }
-        stdout.flush()?;
         Ok(())
     }
 
@@ -214,15 +191,15 @@ impl State {
             write!(stdout, ",{}", x)?;
         }
         writeln!(stdout)?;
-        for (comp, cis) in self.comparisons.iter().zip(self.cis.iter()) {
+        for diff in self.output() {
             if elide_from {
-                write!(stdout, "{}", comp.1)?;
+                write!(stdout, "{}", diff.to)?;
             } else {
-                write!(stdout, "{},{}", comp.0, comp.1)?;
+                write!(stdout, "{},{}", diff.from, diff.to)?;
             }
-            for ci in cis {
-                if let Some(ci) = ci {
-                    write!(stdout, ",{}", ci)?;
+            for stat in &self.stat_names {
+                if let Some(Some(ci)) = diff.cis.get(stat) {
+                    write!(stdout, ",{} ± {}", ci.0, ci.1)?;
                 } else {
                     write!(stdout, ",insufficient data")?;
                 }
@@ -233,58 +210,11 @@ impl State {
     }
 }
 
-use std::fmt;
-// Always takes 21 characters
-struct PrettyCI(
-    Option<ConfidenceInterval>,
-    usize, /* total number of CIs */
-);
-impl fmt::Display for PrettyCI {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(ci) = self.0 {
-            let (scale, suffix) = match ci.center {
-                x if x.abs() < 0.0001 => (1_000_000., "u"),
-                x if x.abs() < 0.1 => (1_000., "m"),
-                x if x.abs() >= 1_000. => (0.001, "k"),
-                x if x.abs() >= 1_000_000. => (0.000001, "M"),
-                _ => (1., ""),
-            };
-            let center = ci.center * scale;
-            let radius = ci.radius * scale;
-            let critical = ci.radius * self.1 as f64;
-            if ci.center - ci.radius < 0. && 0. < ci.center + ci.radius {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
-                write!(f, "{:>9} ± {:<9}", center, radius)
-            } else if ci.center - critical < 0. && 0. < ci.center + critical {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
-                write!(
-                    f,
-                    "{}{:>9} ± {:<9}{}",
-                    Color::Yellow.prefix(),
-                    center,
-                    radius,
-                    Color::Yellow.suffix()
-                )
-            } else {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
-                write!(
-                    f,
-                    "{}{:>9} ± {:<9}{}",
-                    Color::Red.prefix(),
-                    center,
-                    radius,
-                    Color::Red.suffix()
-                )
-            }
-        } else {
-            write!(
-                f,
-                "{}",
-                Style::new().dimmed().paint("  insufficient data  ")
-            )
-        }
-    }
+#[derive(Serialize, Debug, Clone, PartialEq, Deserialize)]
+pub struct Diff {
+    pub from: String,
+    pub to: String,
+    pub significance_level: f64,
+    #[serde(flatten)]
+    pub cis: BTreeMap<String, Option<(f64, f64)>>,
 }
