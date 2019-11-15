@@ -50,6 +50,7 @@ pub fn diff(opts: Options) -> Result<()> {
         }
 
         if let Some(t) = opts.threshold {
+            state.update_cis();
             if state.is_finished(t) {
                 break;
             }
