@@ -13,8 +13,8 @@ pub struct Options {
     csv: bool,
     #[structopt(long)]
     elide_from: bool,
-    #[structopt(long)]
-    every_line: bool,
+    #[structopt(long, short)]
+    only_once: bool,
 }
 
 pub fn diff(opts: Options) -> Result<()> {
@@ -44,16 +44,18 @@ pub fn diff(opts: Options) -> Result<()> {
         let label = row.next().unwrap().to_string();
         state.update_measurements(&label, row.map(|x| x.parse().unwrap()));
 
-        if opts.every_line {
+        if !opts.only_once {
             state.update_cis();
             state.print_json(&mut stdout)?;
         }
     }
-    state.update_cis();
-    if opts.csv {
-        state.print_csv(stdout, opts.elide_from)?;
-    } else {
-        state.print_json(stdout)?;
+    if opts.only_once {
+        state.update_cis();
+        if opts.csv {
+            state.print_csv(stdout, opts.elide_from)?;
+        } else {
+            state.print_json(stdout)?;
+        }
     }
     Ok(())
 }
