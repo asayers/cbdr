@@ -33,30 +33,30 @@ pub struct PrettyCI(pub Option<DiffCI>);
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ci) = self.0 {
-            let center = format!("{:.3}%", ci.delta_pc());
+            let center = format!("{:+.3}%", ci.delta_pc());
             let r95 = format!("{:.3}% (95%)", ci.r95_pc());
             let r99 = format!("{:.3}% (99%)", ci.r99_pc());
             if ci.delta() - ci.r95 < 0. && 0. < ci.delta() + ci.r95 {
-                write!(f, "{:>9} ± {:>13}, {:>13}", center, r95, r99)
+                write!(f, "{:>9} ± {:>13}, ± {:>13}", center, r95, r99)
             } else if ci.delta() - ci.r99 < 0. && 0. < ci.delta() + ci.r99 {
                 write!(
                     f,
-                    "{}{:>9} ± {:>13}, ± {:>13}{}",
+                    "{}{:>9}{} ± {:>13}, ± {:>13}",
                     Color::Yellow.prefix(),
                     center,
+                    Color::Yellow.suffix(),
                     r95,
                     r99,
-                    Color::Yellow.suffix()
                 )
             } else {
                 write!(
                     f,
-                    "{}{:>9} ± {:>13}, {:>13}{}",
+                    "{}{:>9}{} ± {:>13}, ± {:>13}",
                     Color::Red.prefix(),
                     center,
+                    Color::Red.suffix(),
                     r95,
                     r99,
-                    Color::Red.suffix()
                 )
             }
         } else {
