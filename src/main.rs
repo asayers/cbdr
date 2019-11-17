@@ -30,7 +30,11 @@ fn main() {
                     return ();
                 }
             }
-            eprintln!("Error: {}", e);
+            eprintln!(
+                "{}: Error: {}",
+                std::env::args().collect::<Vec<_>>().join(" "),
+                e
+            );
             std::process::exit(1)
         }
     }
