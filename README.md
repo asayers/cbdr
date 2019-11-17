@@ -114,3 +114,15 @@ or some percentile, or anything really since "±" doesn't have a fixed
 standardized meaning.  Having the variance of the measurements is well and
 good, but it doesn't help you decide whether the result is significant.
 Check your tools, and be skeptical if there's no mention of an "inverse CDF".
+
+## CBDR
+
+This repo contains a suite of tools called `cbdr`.  Here's an example of their usage:
+
+```
+cbdr sample ./bench_helpers/time-bench.sh 'cargo c' 'cargo t' | cbdr diff  'cargo c,cargo t' | cbdr pretty
+```
+
+Here's what it looks like:
+
+<img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
