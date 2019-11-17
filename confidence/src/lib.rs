@@ -35,6 +35,20 @@ impl fmt::Display for ConfidenceInterval {
 ///
 /// We have a sample from X and a sample from Y and we want to use these to
 /// estimate μ_y - μ_x.
+///
+/// ## Variance of the difference between the means
+///
+/// When estimating μ with a sample mean ̄x, the variance of this estimate
+/// is σ²/n, where n is the size of the sample.  Since we also don't know
+/// σ², we have to estimate the variance of the estimated mean by s²/n.
+/// In this case we want the variance of ̄y - ̄x.  We estimate it by
+/// s²_x/n_x + s²_y/n_y.
+///
+/// ## Degrees of freedom
+///
+/// The degrees of freedom for s² is n-1.  To compute the pooled degrees
+/// of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
+/// the Welch–Satterthwaite equation.
 pub fn confidence_interval(
     sig_level: f64,
     x: Stats,
@@ -49,24 +63,15 @@ pub fn confidence_interval(
     let alpha = 1. - sig_level;
     let p = 1. - (alpha / 2.);
 
-    // Variance of the difference between the means
-    //
-    // When estimating μ with a sample mean ̄x, the variance of this estimate
-    // is σ²/n, where n is the size of the sample.  Since we also don't know
-    // σ², we have to estimate the variance of the estimated mean by s²/n.
-    // In this case we want the variance of ̄y - ̄x.  We estimate it by
-    // s²_x/n_x + s²_y/n_y.
+    // Estimate the variance of the `y.mean - x.mean`
     let var = x.var() / x.count as f64 + y.var() / y.count as f64;
 
-    // Degrees of freedom of `var`
-    //
-    // The degrees of freedom for s² is n-1.  To compute the pooled degrees
-    // of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
-    // the Welch–Satterthwaite equation.
+    // Approximate the degrees of freedom of `var_delta`
     let k_x = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
     let k_y = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
     let v = var * var / (k_x + k_y);
 
+    // Compute the critical value at the chosen confidence level
     let t = student_t::inv_cdf(p, v);
 
     let center = y.mean - x.mean;
