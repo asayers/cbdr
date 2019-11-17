@@ -1,5 +1,22 @@
 # Continuous Benchmarking, Done Right
 
+## tl;dr
+
+You have a decent macro-benchmark.  You have two commits you want to compare
+(presumably: the merge-base vs. the tip of your branch).  You've decided
+how small the smallest regression you care about is (call this `T`).
+
+1. Pick a commit randomly and benchmark it; add the results to your total
+   set of measurements.
+2. Compute the 95% confidence interval for the diffence of the means.
+3. Is the width of the CI still bigger than `T`?  If so, go back to step 1.
+4. Does the CI contain zero?  If not, you may have a regression.
+
+There's some stuff in this repo which might help you implement a scheme like
+this yourself.
+
+## Discussion
+
 Continuous integration (which normally means "running the tests on every
 commit") has become standard practise, and for good reason: if you don't
 have good tests and run them regularly, you're bound to allow semantic
@@ -15,24 +32,12 @@ property you _really_ care about is the mean of that distribution; and the
 thing you _actually really_ care about is how much that mean changes when
 you apply a particular patch.
 
-Without further ado, here's my method:
-
-1. Take a pair of commits you care about (presumably the tip of your branch
-   and the merge-base)
-2. Pick one at random and benchmark it, appending the results to your set
-   of measurements
-3. Compute the 95% confidence interval for the diffence of the means
-4. If the confidence interval is smaller than the smallest regression you
-   care about, you're done.  If not, go to step 2.
+## Multiple benchmarks
 
 If your benchmark produces multiple values (eg. wall time and max RSS),
 then you want to check that none of them have regressed.  This multiplies
 your chance of a false positive by the number of values involved.  You can
 counteract this by multiplying the widths of your CIs by the same number.
-
-There's some stuff in this repo which might help you implement a scheme like
-the one I described, but to be honest it's not that hard and the setup will
-depend a lot on how your benchmarks look.
 
 ## Stats
 
