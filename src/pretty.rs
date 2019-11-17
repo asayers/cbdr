@@ -27,17 +27,9 @@ pub struct PrettyCI(pub Option<DiffCI>);
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ci) = self.0 {
-            let (scale, suffix) = match ci.0 {
-                x if x.abs() < 0.0001 => (1_000_000., "u"),
-                x if x.abs() < 0.1 => (1_000., "m"),
-                x if x.abs() >= 1_000. => (0.001, "k"),
-                x if x.abs() >= 1_000_000. => (0.000001, "M"),
-                _ => (1., ""),
-            };
-            let center = format!("{:.3}{}", ci.delta() * scale, suffix);
-            let r95 = format!("{:.3}{}", ci.r95 * scale, suffix);
-            let r99 = format!("{:.3}{}", ci.r99 * scale, suffix);
-            let critical = ci.r95 * self.1 as f64;
+            let center = format!("{:.3}%", ci.delta_pc());
+            let r95 = format!("{:.3}% (95%)", ci.r95_pc());
+            let r99 = format!("{:.3}% (99%)", ci.r99_pc());
             if ci.delta() - ci.r95 < 0. && 0. < ci.delta() + ci.r95 {
                 write!(f, "{:>9} ± {:>13}, {:>13}", center, r95, r99)
             } else if ci.delta() - ci.r99 < 0. && 0. < ci.delta() + ci.r99 {

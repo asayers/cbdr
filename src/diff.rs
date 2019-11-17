@@ -214,4 +214,13 @@ impl DiffCI {
     pub fn delta(self) -> f64 {
         self.mean_y - self.mean_x
     }
+    pub fn delta_pc(self) -> f64 {
+        100. * self.delta() / self.mean_x
+    }
+    pub fn r95_pc(self) -> f64 {
+        100. * self.r95 / self.mean_x
+    }
+    pub fn r99_pc(self) -> f64 {
+        100. * self.r99 / self.mean_x
+    }
 }
