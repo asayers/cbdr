@@ -1,4 +1,5 @@
 mod diff;
+mod limit;
 mod pretty;
 mod sample;
 
@@ -9,6 +10,7 @@ enum Subcommand {
     Diff(diff::Options),
     Sample(sample::Options),
     Pretty,
+    Limit(limit::Options),
 }
 
 fn main() {
@@ -17,6 +19,7 @@ fn main() {
         Subcommand::Diff(opts) => diff::diff(opts),
         Subcommand::Sample(opts) => sample::sample(opts),
         Subcommand::Pretty => pretty::pretty(),
+        Subcommand::Limit(opts) => limit::limit(opts),
     };
     match result {
         Ok(()) => (),

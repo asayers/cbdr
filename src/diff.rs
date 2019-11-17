@@ -8,8 +8,6 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Options {
-    #[structopt(short, long)]
-    threshold: Option<f64>,
     #[structopt(short, long, default_value = "0.95")]
     significance_level: f64,
     comparisons: Vec<String>,
@@ -17,6 +15,8 @@ pub struct Options {
     csv: bool,
     #[structopt(long)]
     elide_from: bool,
+    #[structopt(long)]
+    every_line: bool,
 }
 
 pub fn diff(opts: Options) -> Result<()> {
@@ -39,24 +39,19 @@ pub fn diff(opts: Options) -> Result<()> {
         .map(|x| x.to_string())
         .collect::<Vec<_>>();
     let mut state = State::new(comparisons, stat_names, opts.significance_level);
+    let mut stdout = std::io::stdout();
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
         let label = row.next().unwrap().to_string();
         state.update_measurements(&label, row.map(|x| x.parse().unwrap()));
-        if log_enabled!(log::Level::Info) {
-            eprintln!("----------");
-            state.print_csv(std::io::stderr(), opts.elide_from)?;
-        }
 
-        if let Some(t) = opts.threshold {
+        if opts.every_line {
             state.update_cis();
-            if state.is_finished(t) {
-                break;
-            }
+            state.print_json(&mut stdout)?;
         }
     }
-    let stdout = std::io::stdout();
+    state.update_cis();
     if opts.csv {
         state.print_csv(stdout, opts.elide_from)?;
     } else {
@@ -142,15 +137,7 @@ impl State {
         }
     }
 
-    fn is_finished(&self, threshold: f64) -> bool {
-        self.cis.iter().all(|cis| {
-            cis.iter()
-                .all(|ci| ci.as_ref().map_or(false, |ci| ci.radius < threshold))
-        })
-    }
-
-    fn output(&mut self) -> Vec<Diff> {
-        self.update_cis();
+    fn output(&self) -> Vec<Diff> {
         let significance_level = self.significance_level;
         self.comparisons
             .iter()
@@ -169,20 +156,17 @@ impl State {
             .collect()
     }
 
-    fn print_json(&mut self, mut stdout: impl Write) -> Result<()> {
-        for diff in self.output() {
-            serde_json::to_writer(&mut stdout, &diff)?;
-            writeln!(stdout)?;
-        }
+    fn print_json(&self, mut stdout: impl Write) -> Result<()> {
+        let s = serde_json::to_string(&self.output())?;
+        writeln!(stdout, "{}", s)?;
         Ok(())
     }
 
     fn print_csv(
-        &mut self,
+        &self,
         mut stdout: impl Write,
         elide_from: bool,
     ) -> Result<(), Box<std::io::Error>> {
-        self.update_cis();
         if elide_from {
             write!(stdout, "label")?;
         } else {
