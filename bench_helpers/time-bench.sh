@@ -4,4 +4,6 @@
 # user_time: seconds
 # system_time: seconds
 # max_rss: KB
-/usr/bin/time -f'{ "wall_time": %e, "user_time": %U, "system_time": %S, "max_rss": %M }' $@ 2>&1 >/dev/null
+out=$(mktemp)
+/usr/bin/time -o$out -f'{ "wall_time": %e, "user_time": %U, "system_time": %S, "max_rss": %M }' $@ &>/dev/null
+cat $out
