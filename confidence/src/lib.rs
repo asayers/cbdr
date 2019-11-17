@@ -58,6 +58,12 @@ pub fn confidence_interval(
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
     }
+    if !x.var().is_finite() || !y.var().is_finite() {
+        return Err(Error::InfiniteVariance);
+    }
+    if x.var() == 0. || y.var() == 0. {
+        return Err(Error::ZeroVariance);
+    }
 
     // Convert `sig_level`, which is two-sided, into `p`, which is one-sided
     let alpha = 1. - sig_level;
@@ -72,6 +78,8 @@ pub fn confidence_interval(
     let v = var * var / (k_x + k_y);
 
     // Compute the critical value at the chosen confidence level
+    assert!(p.is_normal());
+    assert!(v.is_normal());
     let t = student_t::inv_cdf(p, v);
 
     let center = y.mean - x.mean;
@@ -81,6 +89,8 @@ pub fn confidence_interval(
 
 pub enum Error {
     NotEnoughData,
+    InfiniteVariance,
+    ZeroVariance,
 }
 
 #[cfg(test)]
