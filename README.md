@@ -79,6 +79,15 @@ of noise which vary at the day- or month-scale.  Is your cooling good enough
 to ensure that results taken in the summer are comparable with results taken
 in the winter?
 
+#### But... I don't want to re-benchmark old commits!
+
+Freshly benchmarking the base gives a number of advantages (in addition to
+improving the resulting data, as explained above): your CI runs are now (1)
+stateless and (2) machine-independent.  If you want to reuse old results,
+you need to maintain a database and a dedicated benchmarking machine.
+The downside of re-benchmarking is that your CI machines will spend - at most -
+2x longer on benchmarking.  Is that a resource you really need to claw back?
+
 ### Plotting the means and eyeballing the difference
 
 This is not a great idea, even when confidence intervals are included.
