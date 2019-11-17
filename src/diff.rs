@@ -8,8 +8,6 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Options {
-    #[structopt(short, long, default_value = "0.95")]
-    significance_level: f64,
     comparisons: Vec<String>,
     #[structopt(short, long)]
     csv: bool,
@@ -38,7 +36,7 @@ pub fn diff(opts: Options) -> Result<()> {
         .skip(1)
         .map(|x| x.to_string())
         .collect::<Vec<_>>();
-    let mut state = State::new(comparisons, stat_names, opts.significance_level);
+    let mut state = State::new(comparisons, stat_names);
     let mut stdout = std::io::stdout();
     for row in rdr.into_records() {
         let row = row?;
@@ -82,26 +80,20 @@ impl Measurements {
 }
 
 struct State {
-    significance_level: f64,
     comparisons: Vec<(String, String)>,
     stat_names: Vec<String>,
     measurements: HashMap<String, Measurements>,
     // Outer vec corresponds to comparison, inner to stat_name
-    cis: Vec<Vec<Option<ConfidenceInterval>>>,
+    cis: Vec<Vec<Option<DiffCI>>>,
 }
 
 impl State {
-    fn new(
-        comparisons: Vec<(String, String)>,
-        stat_names: Vec<String>,
-        significance_level: f64,
-    ) -> State {
+    fn new(comparisons: Vec<(String, String)>, stat_names: Vec<String>) -> State {
         let mut cis = vec![];
         for _ in 0..comparisons.len() {
             cis.push(vec![None; stat_names.len()]);
         }
         State {
-            significance_level,
             measurements: HashMap::new(),
             cis,
             comparisons,
@@ -122,35 +114,44 @@ impl State {
     }
 
     fn update_cis(&mut self) {
-        let sig_level = self.significance_level;
         for (i, (from, to)) in self.comparisons.iter_mut().enumerate() {
             if let Some(from) = self.measurements.get(from) {
                 if let Some(to) = self.measurements.get(to) {
+                    let new_cis = from.iter().zip(to.iter()).map(|(x, y)| {
+                        let r = |sig_level| {
+                            confidence_interval(sig_level, x, y)
+                                .map_err(|e| match e {
+                                    confidence::Error::NotEnoughData => (), // we expect some of these; ignore
+                                    e => warn!("Skipping bad stats: {} ({:?} {:?})", e, x, y),
+                                })
+                                .ok()
+                        };
+                        Some(DiffCI {
+                            mean_x: x.mean,
+                            mean_y: y.mean,
+                            r95: r(0.95)?,
+                            r99: r(0.99)?,
+                        })
+                    });
                     self.cis[i].clear();
-                    self.cis[i].extend(
-                        from.iter()
-                            .zip(to.iter())
-                            .map(|(x, y)| confidence_interval(sig_level, x, y).ok()),
-                    );
+                    self.cis[i].extend(new_cis);
                 }
             }
         }
     }
 
     fn output(&self) -> Vec<Diff> {
-        let significance_level = self.significance_level;
         self.comparisons
             .iter()
             .zip(self.cis.iter())
             .map(|(comp, cis)| Diff {
                 from: comp.0.clone(),
                 to: comp.1.clone(),
-                significance_level,
                 cis: self
                     .stat_names
                     .iter()
                     .zip(cis.iter())
-                    .map(|(k, ci)| (k.clone(), ci.map(|ci| (ci.center, ci.radius))))
+                    .map(|(k, ci)| (k.clone(), *ci))
                     .collect(),
             })
             .collect()
@@ -184,7 +185,7 @@ impl State {
             }
             for stat in &self.stat_names {
                 if let Some(Some(ci)) = diff.cis.get(stat) {
-                    write!(stdout, ",{} ± {}", ci.0, ci.1)?;
+                    write!(stdout, ",{} ± {}/{}", ci.mean_y - ci.mean_x, ci.r95, ci.r99)?;
                 } else {
                     write!(stdout, ",insufficient data")?;
                 }
@@ -199,7 +200,18 @@ impl State {
 pub struct Diff {
     pub from: String,
     pub to: String,
-    pub significance_level: f64,
     #[serde(flatten)]
-    pub cis: BTreeMap<String, Option<(f64, f64)>>,
+    pub cis: BTreeMap<String, Option<DiffCI>>,
+}
+#[derive(Serialize, Debug, Clone, PartialEq, Deserialize, Copy)]
+pub struct DiffCI {
+    pub mean_x: f64,
+    pub mean_y: f64,
+    pub r95: f64,
+    pub r99: f64,
+}
+impl DiffCI {
+    pub fn delta(self) -> f64 {
+        self.mean_y - self.mean_x
+    }
 }
