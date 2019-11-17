@@ -7,25 +7,23 @@ use std::io::{stdin, stdout, BufRead, BufReader, Write};
 pub fn pretty() -> Result<()> {
     let stdout = stdout();
     let mut stdout = stdout.lock();
-    for diff in BufReader::new(stdin()).lines() {
-        let diff: Diff = serde_json::from_str(&diff?)?;
-        writeln!(stdout, "{}..{}:", diff.from, diff.to)?;
-        let n = diff.cis.len();
-        let mut out = tabwriter::TabWriter::new(&mut stdout);
-        for (stat, ci) in diff.cis {
-            writeln!(out, "\t{}:\t{}", stat, PrettyCI(ci, n))?;
+    for line in BufReader::new(stdin()).lines() {
+        let diffs: Vec<Diff> = serde_json::from_str(&line?)?;
+        for diff in diffs {
+            writeln!(stdout, "{}..{}:", diff.from, diff.to)?;
+            let n = diff.cis.len();
+            let mut out = tabwriter::TabWriter::new(&mut stdout);
+            for (stat, ci) in diff.cis {
+                writeln!(out, "\t{}:\t{}", stat, PrettyCI(ci, n))?;
+            }
+            out.flush()?;
         }
-        out.flush()?;
-        writeln!(stdout, "    (CIs shown at the {}% significance level)", diff.significance_level* 100.)?;
     }
     Ok(())
 }
 
 // Always takes 21 characters
-pub struct PrettyCI(
-    pub Option<(f64, f64)>,
-    pub usize, /* total number of CIs */
-);
+pub struct PrettyCI(pub Option<DiffCI>, pub usize /* total number of CIs */);
 
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -37,33 +35,30 @@ impl fmt::Display for PrettyCI {
                 x if x.abs() >= 1_000_000. => (0.000001, "M"),
                 _ => (1., ""),
             };
-            let center = ci.0 * scale;
-            let radius = ci.1 * scale;
-            let critical = ci.1 * self.1 as f64;
-            if ci.0 - ci.1 < 0. && 0. < ci.0 + ci.1 {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
-                write!(f, "{:>9} ± {:<9}", center, radius)
-            } else if ci.0 - critical < 0. && 0. < ci.0 + critical {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
+            let center = format!("{:.3}{}", ci.delta() * scale, suffix);
+            let r95 = format!("{:.3}{}", ci.r95 * scale, suffix);
+            let r99 = format!("{:.3}{}", ci.r99 * scale, suffix);
+            let critical = ci.r95 * self.1 as f64;
+            if ci.delta() - ci.r95 < 0. && 0. < ci.delta() + ci.r95 {
+                write!(f, "{:>9} ± {:>13}, {:>13}", center, r95, r99)
+            } else if ci.delta() - critical < 0. && 0. < ci.delta() + critical {
                 write!(
                     f,
-                    "{}{:>9} ± {:<9}{}",
+                    "{}{:>9} ± {:>13}, ± {:>13}{}",
                     Color::Yellow.prefix(),
                     center,
-                    radius,
+                    r95,
+                    r99,
                     Color::Yellow.suffix()
                 )
             } else {
-                let center = format!("{:.3}{}", center, suffix);
-                let radius = format!("{:.3}{}", radius, suffix);
                 write!(
                     f,
-                    "{}{:>9} ± {:<9}{}",
+                    "{}{:>9} ± {:>13}, {:>13}{}",
                     Color::Red.prefix(),
                     center,
-                    radius,
+                    r95,
+                    r99,
                     Color::Red.suffix()
                 )
             }
