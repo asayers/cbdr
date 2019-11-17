@@ -1,7 +1,5 @@
 pub mod student_t;
 
-use std::fmt;
-
 /// Statictics for a sample taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Stats {
@@ -91,6 +89,19 @@ pub enum Error {
     NotEnoughData,
     InfiniteVariance,
     ZeroVariance,
+}
+
+use std::fmt;
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::NotEnoughData => f.write_str("Can't compute CI when sample size is less than 2"),
+            Error::InfiniteVariance => {
+                f.write_str("The variance of one of the samples is infinite")
+            }
+            Error::ZeroVariance => f.write_str("The variance of one of the samples is zero"),
+        }
+    }
 }
 
 #[cfg(test)]
