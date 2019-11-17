@@ -10,17 +10,21 @@ pub struct Options {
     labels: Vec<String>,
 }
 
+fn run_bench(opts: &Options, label: &str) -> Result<HashMap<String, f64>> {
+    let out = Command::new(&opts.bench_prog)
+        .arg(label)
+        .output()
+        .unwrap();
+    std::io::stderr().write_all(&out.stderr)?;
+    serde_json::from_slice(&out.stdout)
+        .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
 pub fn sample(opts: Options) -> Result<()> {
     let mut stats = BTreeSet::new();
     for label in &opts.labels {
         eprintln!("Warming up {}...", label);
-        let out = Command::new(&opts.bench_prog)
-            .arg(label)
-            .output()
-            .unwrap()
-            .stdout;
-        let results: HashMap<String, f64> = serde_json::from_slice(&out)
-            .with_context(|| String::from_utf8_lossy(&out).into_owned())?;
+        let results = run_bench(&opts, label)?;
         stats.extend(results.keys().cloned());
     }
 
@@ -34,12 +38,7 @@ pub fn sample(opts: Options) -> Result<()> {
     loop {
         let idx = rand::random::<usize>() % opts.labels.len();
         let label = &opts.labels[idx];
-        let out = Command::new(&opts.bench_prog)
-            .arg(label)
-            .output()
-            .unwrap()
-            .stdout;
-        let results: HashMap<String, f64> = serde_json::from_slice(&out).unwrap();
+        let results = run_bench(&opts, label)?;
         write!(stdout, "{}", label)?;
         for stat in &stats {
             write!(stdout, ",{}", results.get(stat).unwrap_or(&std::f64::NAN))?;
