@@ -9,8 +9,20 @@ pub struct Stats {
 }
 
 impl Stats {
+    /// An estimate of the population variance
     fn var(self) -> f64 {
         self.std_dev * self.std_dev
+    }
+
+    /// An estimate of the variance of `mean` (which is an estimate of the
+    /// population mean).
+    ///
+    /// When estimating μ with a sample mean ̄x, the variance of this
+    /// estimate is σ²/n, where n is the size of the sample.  Since we also
+    /// don't know σ², we have to estimate the variance of the estimated
+    /// mean by s²/n.
+    fn mean_var(self) -> f64 {
+        self.var() / self.count as f64
     }
 }
 
@@ -36,11 +48,9 @@ impl fmt::Display for ConfidenceInterval {
 ///
 /// ## Variance of the difference between the means
 ///
-/// When estimating μ with a sample mean ̄x, the variance of this estimate
-/// is σ²/n, where n is the size of the sample.  Since we also don't know
-/// σ², we have to estimate the variance of the estimated mean by s²/n.
-/// In this case we want the variance of ̄y - ̄x.  We estimate it by
-/// s²_x/n_x + s²_y/n_y.
+/// We have an estimate of μ_(Y-X) - namely, ̄y - ̄x, and we want to
+/// know the variance of that estimate.  For this we can use the sum of the
+/// variances of ̄x and ̄y, which gives s²_x/n_x + s²_y/n_y.
 ///
 /// ## Degrees of freedom
 ///
@@ -68,12 +78,14 @@ pub fn confidence_interval(
     let p = 1. - (alpha / 2.);
 
     // Estimate the variance of the `y.mean - x.mean`
-    let var = x.var() / x.count as f64 + y.var() / y.count as f64;
+    let x_mean_var = x.mean_var();
+    let y_mean_var = y.mean_var();
+    let var_delta = x_mean_var + y_mean_var;
 
     // Approximate the degrees of freedom of `var_delta`
-    let k_x = x.var() * x.var() / (x.count * x.count * (x.count - 1)) as f64;
-    let k_y = y.var() * y.var() / (y.count * y.count * (y.count - 1)) as f64;
-    let v = var * var / (k_x + k_y);
+    let k_x = x_mean_var * x_mean_var / (x.count - 1) as f64;
+    let k_y = y_mean_var * y_mean_var / (y.count - 1) as f64;
+    let v = var_delta * (var_delta / (k_x + k_y));
 
     // Compute the critical value at the chosen confidence level
     assert!(p.is_normal());
