@@ -11,10 +11,9 @@ pub fn pretty() -> Result<()> {
         let diffs: Vec<Diff> = serde_json::from_str(&line?)?;
         for diff in diffs {
             writeln!(stdout, "{}..{}:", diff.from, diff.to)?;
-            let n = diff.cis.len();
             let mut out = tabwriter::TabWriter::new(&mut stdout);
             for (stat, ci) in diff.cis {
-                writeln!(out, "\t{}:\t{}", stat, PrettyCI(ci, n))?;
+                writeln!(out, "\t{}:\t{}", stat, PrettyCI(ci))?;
             }
             out.flush()?;
         }
@@ -23,7 +22,7 @@ pub fn pretty() -> Result<()> {
 }
 
 // Always takes 21 characters
-pub struct PrettyCI(pub Option<DiffCI>, pub usize /* total number of CIs */);
+pub struct PrettyCI(pub Option<DiffCI>);
 
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -41,7 +40,7 @@ impl fmt::Display for PrettyCI {
             let critical = ci.r95 * self.1 as f64;
             if ci.delta() - ci.r95 < 0. && 0. < ci.delta() + ci.r95 {
                 write!(f, "{:>9} ± {:>13}, {:>13}", center, r95, r99)
-            } else if ci.delta() - critical < 0. && 0. < ci.delta() + critical {
+            } else if ci.delta() - ci.r99 < 0. && 0. < ci.delta() + ci.r99 {
                 write!(
                     f,
                     "{}{:>9} ± {:>13}, ± {:>13}{}",
