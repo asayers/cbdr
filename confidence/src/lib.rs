@@ -26,19 +26,9 @@ impl Stats {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Copy)]
-pub struct ConfidenceInterval {
-    pub center: f64,
-    pub radius: f64,
-}
-
-impl fmt::Display for ConfidenceInterval {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ± {}", self.center, self.radius)
-    }
-}
-
-/// A confidence interval for `y.mean - x.mean`.
+/// A confidence interval for `y.mean - x.mean`.  This function returns the
+/// half-width of the confidence interval, ie. the `i` in `y.mean - x.mean
+/// ± i`.
 ///
 /// Given two normally distributed populations X ~ N(μ_x, σ²_x) and Y ~
 /// N(μ_y, σ²_y), Y-X is distributed as N(μ_y - μ_x, σ²_x + σ²_y).
@@ -57,11 +47,7 @@ impl fmt::Display for ConfidenceInterval {
 /// The degrees of freedom for s² is n-1.  To compute the pooled degrees
 /// of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
 /// the Welch–Satterthwaite equation.
-pub fn confidence_interval(
-    sig_level: f64,
-    x: Stats,
-    y: Stats,
-) -> Result<ConfidenceInterval, Error> {
+pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Result<f64, Error> {
     // Prevent division by zero (see "degrees of freedom")
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
@@ -92,9 +78,8 @@ pub fn confidence_interval(
     assert!(v.is_normal());
     let t = student_t::inv_cdf(p, v);
 
-    let center = y.mean - x.mean;
-    let radius = t * var.sqrt();
-    Ok(ConfidenceInterval { center, radius })
+    let radius = t * var_delta.sqrt();
+    Ok(radius)
 }
 
 pub enum Error {
@@ -119,6 +104,26 @@ impl fmt::Display for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt;
+
+    #[derive(Clone, PartialEq, Debug, Copy)]
+    struct ConfidenceInterval {
+        pub center: f64,
+        pub radius: f64,
+    }
+    impl ConfidenceInterval {
+        fn new(sig_level: f64, x: Stats, y: Stats) -> Result<ConfidenceInterval, Error> {
+            confidence_interval(sig_level, x, y).map(|radius| ConfidenceInterval {
+                center: y.mean - x.mean,
+                radius,
+            })
+        }
+    }
+    impl fmt::Display for ConfidenceInterval {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{} ± {}", self.center, self.radius)
+        }
+    }
 
     #[test]
     fn cis() {
@@ -134,15 +139,15 @@ mod tests {
         };
 
         assert_eq!(
-            confidence_interval(0.9, s1, s2).to_string(),
+            ConfidenceInterval::new(0.9, s1, s2).to_string(),
             "1 ± 0.9965524858858822"
         );
         assert_eq!(
-            confidence_interval(0.95, s1, s2).to_string(),
+            ConfidenceInterval::new(0.95, s1, s2).to_string(),
             "1 ± 1.2105369242089183"
         );
         assert_eq!(
-            confidence_interval(0.99, s1, s2).to_string(),
+            ConfidenceInterval::new(0.99, s1, s2).to_string(),
             "1 ± 1.6695970385386512"
         );
     }
@@ -165,7 +170,7 @@ mod tests {
             2.037501835321414
         );
         assert_eq!(
-            confidence_interval(0.95, males, females).to_string(),
+            ConfidenceInterval::new(0.95, males, females).to_string(),
             "1.4709999999999996 ± 1.1824540265693928"
         );
     }
@@ -184,7 +189,7 @@ mod tests {
             std_dev: 0.7206,
         };
         assert_eq!(
-            confidence_interval(0.95, x, y).to_string(),
+            ConfidenceInterval::new(0.95, x, y).to_string(),
             "5 ± 0.8854529371346332"
         );
     }
@@ -203,7 +208,7 @@ mod tests {
     //         std_dev: 0.022789,
     //     };
     //     assert_eq!(
-    //         confidence_interval(0.95, x, y).to_string(),
+    //         ConfidenceInterval::new(0.95, x, y).to_string(),
     //         "9.26146 ± 0.0032187032419323048"
     //     );
     // }
