@@ -1,201 +1,55 @@
+use crate::summarize::*;
 use anyhow::*;
 use confidence::*;
 use log::*;
 use serde::*;
-use std::collections::{BTreeMap, HashMap};
-use std::io::Write;
+use std::collections::{BTreeMap, BTreeSet};
+use std::io::{BufRead, BufReader, Write};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Options {
     comparisons: Vec<String>,
-    #[structopt(short, long)]
-    csv: bool,
-    #[structopt(long)]
-    elide_from: bool,
-    #[structopt(long, short)]
-    only_once: bool,
+}
+impl Options {
+    fn pairs(&self) -> impl Iterator<Item = (&str, &str)> + '_ {
+        self.comparisons
+            .iter()
+            .flat_map(|x| x.split(',').zip(x.split(',').skip(1)))
+    }
 }
 
 pub fn diff(opts: Options) -> Result<()> {
-    let comparisons = opts
-        .comparisons
-        .iter()
-        .flat_map(|x| {
-            x.split(',')
-                .zip(x.split(',').skip(1))
-                .map(|(from, to)| (from.into(), to.into()))
+    let mut state = opts
+        .pairs()
+        .map(|(from, to)| Diff {
+            from: from.into(),
+            to: to.into(),
+            cis: BTreeMap::new(),
         })
-        .collect::<Vec<(String, String)>>();
-
-    let mut rdr = csv::Reader::from_reader(std::io::stdin());
-    let stat_names = rdr
-        .headers()
-        .unwrap()
-        .into_iter()
-        .skip(1)
-        .map(|x| x.to_string())
         .collect::<Vec<_>>();
-    let mut state = State::new(comparisons, stat_names);
-    let mut stdout = std::io::stdout();
-    for row in rdr.into_records() {
-        let row = row?;
-        let mut row = row.into_iter();
-        let label = row.next().unwrap().to_string();
-        state.update_measurements(&label, row.map(|x| x.parse().unwrap()));
-
-        if !opts.only_once {
-            state.update_cis();
-            state.print_json(&mut stdout)?;
+    for line in BufReader::new(std::io::stdin()).lines() {
+        let measurements: BTreeMap<String, Measurements> = serde_json::from_str(&line?)?;
+        for diff in state.iter_mut() {
+            if let Some(from) = measurements.get(&diff.from) {
+                if let Some(to) = measurements.get(&diff.to) {
+                    diff.cis = diff_ci(from, to);
+                }
+            }
         }
-    }
-    if opts.only_once {
-        state.update_cis();
-        if opts.csv {
-            state.print_csv(stdout, opts.elide_from)?;
-        } else {
-            state.print_json(stdout)?;
-        }
+        let s = serde_json::to_string(&state)?;
+        writeln!(std::io::stdout(), "{}", s)?;
     }
     Ok(())
 }
 
-#[derive(Clone, Debug)]
-struct Measurements {
-    count: usize,
-    stats: Vec<rolling_stats::Stats<f64>>,
-}
-impl Measurements {
-    fn new(n: usize) -> Measurements {
-        Measurements {
-            count: 0,
-            stats: vec![rolling_stats::Stats::new(); n],
-        }
-    }
-    fn iter<'a>(&'a self) -> impl Iterator<Item = Stats> + 'a {
-        self.stats.iter().map(move |x| Stats {
-            count: self.count,
-            mean: x.mean,
-            std_dev: x.std_dev,
+fn ci(sig_level: f64, x: Stats, y: Stats) -> Option<f64> {
+    confidence_interval(sig_level, x, y)
+        .map_err(|e| match e {
+            confidence::Error::NotEnoughData => (), // we expect some of these; ignore
+            e => warn!("Skipping bad stats: {} ({:?} {:?})", e, x, y),
         })
-    }
-}
-
-struct State {
-    comparisons: Vec<(String, String)>,
-    stat_names: Vec<String>,
-    measurements: HashMap<String, Measurements>,
-    // Outer vec corresponds to comparison, inner to stat_name
-    cis: Vec<Vec<Option<DiffCI>>>,
-}
-
-impl State {
-    fn new(comparisons: Vec<(String, String)>, stat_names: Vec<String>) -> State {
-        let mut cis = vec![];
-        for _ in 0..comparisons.len() {
-            cis.push(vec![None; stat_names.len()]);
-        }
-        State {
-            measurements: HashMap::new(),
-            cis,
-            comparisons,
-            stat_names,
-        }
-    }
-
-    fn update_measurements(&mut self, label: &str, values: impl Iterator<Item = f64>) {
-        let n = self.stat_names.len();
-        let entry = self
-            .measurements
-            .entry(label.to_string())
-            .or_insert_with(|| Measurements::new(n));
-        entry.count += 1;
-        for (stats, value) in entry.stats.iter_mut().zip(values) {
-            stats.update(value);
-        }
-    }
-
-    fn update_cis(&mut self) {
-        for (i, (from, to)) in self.comparisons.iter_mut().enumerate() {
-            if let Some(from) = self.measurements.get(from) {
-                if let Some(to) = self.measurements.get(to) {
-                    let new_cis = from.iter().zip(to.iter()).map(|(x, y)| {
-                        let r = |sig_level| {
-                            confidence_interval(sig_level, x, y)
-                                .map_err(|e| match e {
-                                    confidence::Error::NotEnoughData => (), // we expect some of these; ignore
-                                    e => warn!("Skipping bad stats: {} ({:?} {:?})", e, x, y),
-                                })
-                                .ok()
-                        };
-                        Some(DiffCI {
-                            mean_x: x.mean,
-                            mean_y: y.mean,
-                            r95: r(0.95)?,
-                            r99: r(0.99)?,
-                        })
-                    });
-                    self.cis[i].clear();
-                    self.cis[i].extend(new_cis);
-                }
-            }
-        }
-    }
-
-    fn output(&self) -> Vec<Diff> {
-        self.comparisons
-            .iter()
-            .zip(self.cis.iter())
-            .map(|(comp, cis)| Diff {
-                from: comp.0.clone(),
-                to: comp.1.clone(),
-                cis: self
-                    .stat_names
-                    .iter()
-                    .zip(cis.iter())
-                    .map(|(k, ci)| (k.clone(), *ci))
-                    .collect(),
-            })
-            .collect()
-    }
-
-    fn print_json(&self, mut stdout: impl Write) -> Result<()> {
-        let s = serde_json::to_string(&self.output())?;
-        writeln!(stdout, "{}", s)?;
-        Ok(())
-    }
-
-    fn print_csv(
-        &self,
-        mut stdout: impl Write,
-        elide_from: bool,
-    ) -> Result<(), Box<std::io::Error>> {
-        if elide_from {
-            write!(stdout, "label")?;
-        } else {
-            write!(stdout, "from,to")?;
-        }
-        for x in &self.stat_names {
-            write!(stdout, ",{}", x)?;
-        }
-        writeln!(stdout)?;
-        for diff in self.output() {
-            if elide_from {
-                write!(stdout, "{}", diff.to)?;
-            } else {
-                write!(stdout, "{},{}", diff.from, diff.to)?;
-            }
-            for stat in &self.stat_names {
-                if let Some(Some(ci)) = diff.cis.get(stat) {
-                    write!(stdout, ",{} ± {}/{}", ci.mean_y - ci.mean_x, ci.r95, ci.r99)?;
-                } else {
-                    write!(stdout, ",insufficient data")?;
-                }
-            }
-            writeln!(stdout)?;
-        }
-        Ok(())
-    }
+        .ok()
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Deserialize)]
@@ -225,4 +79,26 @@ impl DiffCI {
     pub fn r99_pc(self) -> f64 {
         100. * self.r99 / self.mean_x
     }
+}
+fn diff_ci(xs: &Measurements, ys: &Measurements) -> BTreeMap<String, Option<DiffCI>> {
+    let keys = xs
+        .stats
+        .keys()
+        .chain(ys.stats.keys())
+        .collect::<BTreeSet<_>>();
+    keys.into_iter()
+        .map(|stat| {
+            let ci = (|| {
+                let x = xs.get(stat)?;
+                let y = ys.get(stat)?;
+                Some(DiffCI {
+                    mean_x: x.mean,
+                    mean_y: y.mean,
+                    r95: ci(0.95, x, y)?,
+                    r99: ci(0.99, x, y)?,
+                })
+            })();
+            (stat.clone(), ci)
+        })
+        .collect()
 }

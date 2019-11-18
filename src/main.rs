@@ -2,6 +2,7 @@ mod diff;
 mod limit;
 mod pretty;
 mod sample;
+mod summarize;
 
 use structopt::StructOpt;
 
@@ -11,6 +12,7 @@ enum Subcommand {
     Sample(sample::Options),
     Pretty,
     Limit(limit::Options),
+    Summarize(summarize::Options),
 }
 
 fn main() {
@@ -20,6 +22,7 @@ fn main() {
         Subcommand::Sample(opts) => sample::sample(opts),
         Subcommand::Pretty => pretty::pretty(),
         Subcommand::Limit(opts) => limit::limit(opts),
+        Subcommand::Summarize(opts) => summarize::summarize(opts),
     };
     match result {
         Ok(()) => (),
