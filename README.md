@@ -120,12 +120,17 @@ for mention of an "inverse CDF".
 
 ## CBDR
 
-This repo contains a suite of tools called `cbdr`.  Here's an example of their usage:
+This repo contains a suite of tools called `cbdr`.  Here's an example comparing
+`cargo check` to `cargo test`:
 
 ```
-cbdr sample ./bench_helpers/time-bench.sh 'cargo c' 'cargo t' | cbdr diff  'cargo c,cargo t' | cbdr pretty
+cbdr run 'cargo c' 'cargo t'
 ```
 
 Here's what it looks like:
 
 <img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
+
+You can also save the raw benchmark results with `cbdr run --stdout`
+or `cbdr run --out=<FILE>`, and then post-process them with `cbdr
+{summaize,diff,pretty}`.
