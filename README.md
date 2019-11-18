@@ -115,7 +115,8 @@ computing a confidence interval.  "±" could denote a standard deviatioon,
 or some percentile, or anything really since "±" doesn't have a fixed
 standardized meaning.  Having the variance of the measurements is well and
 good, but it doesn't help you decide whether the result is significant.
-Check your tools, and be skeptical if there's no mention of an "inverse CDF".
+If the docs don't specify the meaning, you could try grepping the source
+for mention of an "inverse CDF".
 
 ## CBDR
 
