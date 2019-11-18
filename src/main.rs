@@ -1,7 +1,8 @@
+mod run;
 mod diff;
 mod limit;
 mod pretty;
-mod sample;
+mod label;
 mod summarize;
 
 use structopt::StructOpt;
@@ -9,20 +10,20 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 enum Subcommand {
     Diff(diff::Options),
-    Sample(sample::Options),
     Pretty,
     Limit(limit::Options),
-    Summarize(summarize::Options),
+    Summarize,
+    Run(run::Options),
 }
 
 fn main() {
     env_logger::init();
     let result = match Subcommand::from_args() {
         Subcommand::Diff(opts) => diff::diff(opts),
-        Subcommand::Sample(opts) => sample::sample(opts),
         Subcommand::Pretty => pretty::pretty(),
         Subcommand::Limit(opts) => limit::limit(opts),
-        Subcommand::Summarize(opts) => summarize::summarize(opts),
+        Subcommand::Summarize => summarize::summarize(),
+        Subcommand::Run(opts) => run::all_the_things(opts),
     };
     match result {
         Ok(()) => (),

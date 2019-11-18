@@ -1,3 +1,4 @@
+use crate::label::*;
 use crate::summarize::*;
 use anyhow::*;
 use confidence::*;
@@ -9,35 +10,70 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Options {
-    comparisons: Vec<String>,
+    /// A "base" label.  If specified, all labels will be compared to this.
+    #[structopt(long)]
+    pub base: Option<String>,
+    /// Labels to compare.  If "base" is not specified, they'll be compared
+    /// consecutively.
+    pub labels: Vec<String>,
 }
 impl Options {
-    fn pairs(&self) -> impl Iterator<Item = (&str, &str)> + '_ {
-        self.comparisons
-            .iter()
-            .flat_map(|x| x.split(',').zip(x.split(',').skip(1)))
+    pub fn all_labels(self) -> Vec<Label> {
+        self.base
+            .into_iter()
+            .chain(self.labels.into_iter())
+            .map(Label::from)
+            .collect()
+    }
+    pub fn pairs(&self) -> Box<dyn Iterator<Item = (Label, Label)> + '_> {
+        if let Some(base) = &self.base {
+            let base = Label::from(base.clone());
+            Box::new(
+                self.labels
+                    .iter()
+                    .cloned()
+                    .map(Label::from)
+                    .map(move |to| (base.clone(), to)),
+            )
+        } else {
+            let iter = self.labels.iter().cloned().map(Label::from);
+            Box::new(iter.clone().zip(iter.skip(1)))
+        }
     }
 }
 
-pub fn diff(opts: Options) -> Result<()> {
-    let mut state = opts
-        .pairs()
-        .map(|(from, to)| Diff {
-            from: from.into(),
-            to: to.into(),
-            cis: BTreeMap::new(),
-        })
-        .collect::<Vec<_>>();
-    for line in BufReader::new(std::io::stdin()).lines() {
-        let measurements: BTreeMap<String, Measurements> = serde_json::from_str(&line?)?;
-        for diff in state.iter_mut() {
+pub struct State {
+    pub diffs: Vec<Diff>,
+}
+impl State {
+    pub fn new(pairs: impl Iterator<Item = (Label, Label)>) -> State {
+        State {
+            diffs: pairs
+                .map(|(from, to)| Diff {
+                    from: from,
+                    to: to,
+                    cis: BTreeMap::new(),
+                })
+                .collect::<Vec<_>>(),
+        }
+    }
+    pub fn update(&mut self, measurements: &BTreeMap<Label, Measurements>) {
+        for diff in self.diffs.iter_mut() {
             if let Some(from) = measurements.get(&diff.from) {
                 if let Some(to) = measurements.get(&diff.to) {
                     diff.cis = diff_ci(from, to);
                 }
             }
         }
-        let s = serde_json::to_string(&state)?;
+    }
+}
+
+pub fn diff(opts: Options) -> Result<()> {
+    let mut state = State::new(opts.pairs());
+    for line in BufReader::new(std::io::stdin()).lines() {
+        let measurements: BTreeMap<Label, Measurements> = serde_json::from_str(&line?)?;
+        state.update(&measurements);
+        let s = serde_json::to_string(&state.diffs)?;
         writeln!(std::io::stdout(), "{}", s)?;
     }
     Ok(())
@@ -54,8 +90,8 @@ fn ci(sig_level: f64, x: Stats, y: Stats) -> Option<f64> {
 
 #[derive(Serialize, Debug, Clone, PartialEq, Deserialize)]
 pub struct Diff {
-    pub from: String,
-    pub to: String,
+    pub from: Label,
+    pub to: Label,
     #[serde(flatten)]
     pub cis: BTreeMap<String, Option<DiffCI>>,
 }
@@ -81,11 +117,7 @@ impl DiffCI {
     }
 }
 fn diff_ci(xs: &Measurements, ys: &Measurements) -> BTreeMap<String, Option<DiffCI>> {
-    let keys = xs
-        .stats
-        .keys()
-        .chain(ys.stats.keys())
-        .collect::<BTreeSet<_>>();
+    let keys = xs.0.keys().chain(ys.0.keys()).collect::<BTreeSet<_>>();
     keys.into_iter()
         .map(|stat| {
             let ci = (|| {

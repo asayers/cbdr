@@ -1,12 +1,37 @@
 use crate::diff::*;
 use anyhow::*;
 use log::*;
+use std::collections::BTreeSet;
 use std::io::{stdin, stdout, BufRead, BufReader, Write};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Options {
-    threshold: f64,
+    /// The target CI width.  Applies to the 95% CI; units are percent of base.
+    #[structopt(long)]
+    threshold: Option<f64>,
+}
+
+pub fn is_finished(opts: &Options, diffs: &[Diff], stats: &BTreeSet<String>) -> bool {
+    if let Some(threshold) = opts.threshold {
+        let worst = diffs
+            .iter()
+            .flat_map(|diff| {
+                stats.iter().map(move |stat| {
+                    *diff.cis.get(stat)?
+                })
+            })
+            .map(|x| x.map_or(std::f64::INFINITY, |x| x.r95_pc()))
+            .fold(std::f64::NEG_INFINITY, f64::max);
+        if worst < threshold {
+            true
+        } else {
+            info!("Threshold not reached: {}% > {}%", worst, threshold);
+            false
+        }
+    } else {
+        false
+    }
 }
 
 pub fn limit(opts: Options) -> Result<()> {
@@ -17,15 +42,8 @@ pub fn limit(opts: Options) -> Result<()> {
         let s = serde_json::to_string(&diffs)?;
         writeln!(stdout, "{}", s)?;
 
-        let worst = diffs
-            .iter()
-            .flat_map(|diff| diff.cis.values())
-            .map(|ci| ci.map_or(std::f64::INFINITY, |x| x.r95_pc()))
-            .fold(std::f64::NEG_INFINITY, f64::max);
-        if worst < opts.threshold {
+        if is_finished(&opts, &diffs, &BTreeSet::new()) {
             break;
-        } else {
-            info!("Threshold not reached: {}% > {}%", worst, opts.threshold);
         }
     }
     Ok(())
