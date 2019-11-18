@@ -9,8 +9,10 @@ how small the smallest regression you care about is (call this `T`).
 1. Pick a commit randomly and benchmark it; add the results to your total
    set of measurements.
 2. Compute the 95% confidence interval for the diffence of the means.
-3. Is the width of the CI still bigger than `T`?  If so, go back to step 1.
-4. Does the CI contain zero?  If not, you may have a regression.
+3. Is the width of the confidence interval still bigger than `T`?  If so,
+   go back to step 1.
+4. Does the confidence interval contain zero?  If not, you may have a
+   regression.
 
 There's some stuff in this repo which might help you implement a scheme like
 this yourself.
