@@ -173,3 +173,23 @@ In case you're wondering, the bench.sh script above looks like this:
 ```
 out=$(mktemp) && /usr/bin/time -o$out -f'{ "wall_time": %e, "max_rss": %M }' $@ &>/dev/null && cat $out
 ```
+
+Of course, you could measure other things instead.  Here's a run using
+`perf stat`:
+
+```
+                              -99%      -95%         Δ      +95%      +99%
+    branch_misses:     [  +49.745%  +50.398%  +52.433%  +54.468%  +55.121% ]  (139978.000 -> 213372.333)
+    branches:          [ +560.242% +560.259% +560.312% +560.366% +560.383% ]  (22268445.685 -> 147041291.940)
+    context_switches:  [   -4.609%  +10.518%  +57.661% +104.805% +119.932% ]  (2.696 -> 4.250)
+    cpu_migrations:    [ -326.871% -191.738% +228.571% +648.880% +784.014% ]  (0.011 -> 0.036)
+    cpu_utilization:   [   -0.006%   -0.002%   +0.010%   +0.021%   +0.025% ]  (1.000 -> 1.000)
+    cycles:            [  +17.691%  +17.730%  +17.850%  +17.971%  +18.010% ]  (2794011079.902 -> 3292753851.464)
+    instructions:      [ +137.573% +137.574% +137.575% +137.576% +137.577% ]  (4584444365.533 -> 10891491773.631)
+    page_faults:       [   -0.672%   -0.384%   +0.514%   +1.413%   +1.701% ]  (75.054 -> 75.440)
+    task_clock:        [  +29.378%  +29.623%  +30.380%  +31.138%  +31.383% ]  (729.043 -> 950.529)
+```
+
+Notice that cycles and instruction count are relatively stable (ie. have
+tight CIs) compared to task_clock, which is why people like them as a proxy.
+They're only loosely correlated with wall time, however.
