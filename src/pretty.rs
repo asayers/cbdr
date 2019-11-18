@@ -24,9 +24,10 @@ impl State {
         }
         self.n = 0;
         for diff in diffs {
-            self.n += diff.cis.len() + 2;
+            self.n += diff.cis.len() + 3;
             writeln!(self.stdout, "\n{}..{}:", diff.from, diff.to)?;
             let mut out = tabwriter::TabWriter::new(&mut self.stdout);
+            writeln!(out, "\t\t{}", write_key())?;
             for (stat, ci) in &diff.cis {
                 writeln!(out, "\t{}:\t{}", stat, PrettyCI(*ci))?;
             }
@@ -45,10 +46,60 @@ pub fn pretty() -> Result<()> {
     Ok(())
 }
 
-// Always takes 21 characters
-pub struct PrettyCI(pub Option<DiffCI>);
+fn write_key() -> String {
+    let style_95 = Style::new().fg(Color::Yellow);
+    let style_99 = Style::new().fg(Color::Red);
+    format!(
+        "  {} {} {} {} {}",
+        style_99.paint(format!("{:>9}", "-99%")),
+        style_95.paint(format!("{:>9}", "-95%")),
+        format!("{:>9}", "Δ"),
+        style_95.paint(format!("{:>9}", "+95%")),
+        style_99.paint(format!("{:>9}", "+99%")),
+    )
+}
+
+struct PrettyCI(Option<DiffCI>);
 
 impl fmt::Display for PrettyCI {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(ci) = self.0 {
+            let delta = ci.mean_y - ci.mean_x;
+            let center = format!("{:+.3}%", 100. * delta / ci.mean_x);
+            let l95 = format!("{:+.3}%", 100. * (delta - ci.r95) / ci.mean_x);
+            let r95 = format!("{:+.3}%", 100. * (delta + ci.r95) / ci.mean_x);
+            let l99 = format!("{:+.3}%", 100. * (delta - ci.r99) / ci.mean_x);
+            let r99 = format!("{:+.3}%", 100. * (delta + ci.r99) / ci.mean_x);
+            let s95 = Style::new(); // .fg(Color::Yellow);
+            let s99 = Style::new(); // .fg(Color::Red);
+            let sl95 = if delta > ci.r95 { s95.bold() } else { s95.dimmed() };
+            let sr95 = if delta < -ci.r95 { s95.bold() } else { s95.dimmed() };
+            let sl99 = if delta > ci.r99 { s99.bold() } else { s99.dimmed() };
+            let sr99 = if delta < -ci.r99 { s99.bold() } else { s99.dimmed() };
+            write!(
+                f,
+                "[ {} {} {} {} {} ]  {}", // \tΔ_99% = [{:>8} ⋯ {:<8}]\t",
+                sl99.paint(format!("{:>9}", l99)),
+                sl95.paint(format!("{:>9}", l95)),
+                format!("{:>9}", center),
+                sr95.paint(format!("{:>9}", r95)),
+                sr99.paint(format!("{:>9}", r99)),
+                Style::new()
+                    .dimmed()
+                    .paint(format!("({:.3} -> {:.3})", ci.mean_x, ci.mean_y)),
+            )
+        } else {
+            write!(
+                f,
+                "{}",
+                Style::new().dimmed().paint("  insufficient data  ")
+            )
+        }
+    }
+}
+
+struct PrettyCI2(Option<DiffCI>);
+impl fmt::Display for PrettyCI2 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ci) = self.0 {
             let center = format!("{:+.3}%", ci.delta_pc());
