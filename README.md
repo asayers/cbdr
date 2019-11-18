@@ -134,3 +134,42 @@ Here's what it looks like:
 You can also save the raw benchmark results with `cbdr run --stdout`
 or `cbdr run --out=<FILE>`, and then post-process them with `cbdr
 {summaize,diff,pretty}`.
+
+### Interpreting the results
+
+Let's say we want to find out how much slower sha1sum is than mdf5sum.  We run this command:
+
+```
+cbdr run --bench=bench.sh "md5sum capture.pcapng.xz" "sha1sum capture.pcapng.xz"
+```
+
+And get the following output:
+
+```
+Warming up md5sum capture.pcapng.xz...
+Warming up sha1sum capture.pcapng.xz...
+
+md5sum capture.pcapng.xz..sha1sum capture.pcapng.xz:
+                       -99%      -95%         Δ      +95%      +99%
+    max_rss:    [   -2.281%   -1.799%   -0.297%   +1.205%   +1.687% ]  (2033.129 -> 2027.086)
+    wall_time:  [  +26.723%  +27.540%  +30.089%  +32.637%  +33.454% ]  (0.756 -> 0.983)
+```
+
+Looking at the wall-clock time, it indeed looks to be about 30% slower.
+That said, you should avoid the temptation reduce the results to a single
+number.  The statistically responsible way to report this benchmark to your
+colleagues would be like this:
+
+> sha1sum was 27.5%-32.6% slower than md5sum (p=95%)
+
+By contrast, looking at the "max_rss" row, we see that the difference is
+between -1.8% and +1.2%.  This means that we don't have enough evidence to
+support the idea that the memory usage is different, one way or the other.
+
+> Memory usage was within noise (p=95%)
+
+In case you're wondering, the bench.sh script above looks like this:
+
+```
+out=$(mktemp) && /usr/bin/time -o$out -f'{ "wall_time": %e, "max_rss": %M }' $@ &>/dev/null && cat $out
+```
