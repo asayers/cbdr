@@ -1,3 +1,4 @@
+mod run;
 mod diff;
 mod limit;
 mod pretty;
@@ -13,6 +14,7 @@ enum Subcommand {
     Pretty,
     Limit(limit::Options),
     Summarize(summarize::Options),
+    Run(run::Options),
 }
 
 fn main() {
@@ -23,6 +25,7 @@ fn main() {
         Subcommand::Pretty => pretty::pretty(),
         Subcommand::Limit(opts) => limit::limit(opts),
         Subcommand::Summarize(opts) => summarize::summarize(opts),
+        Subcommand::Run(opts) => run::all_the_things(opts),
     };
     match result {
         Ok(()) => (),

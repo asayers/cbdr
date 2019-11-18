@@ -11,6 +11,28 @@ pub struct Options {
     rate_limit: Option<f64>,
 }
 
+pub struct State {
+    opts: Options,
+    pub all_measurements: BTreeMap<String, Measurements>,
+}
+impl State {
+    pub fn new(opts: Options) -> State {
+        State {
+            opts,
+            all_measurements: BTreeMap::new(),
+        }
+    }
+    pub fn update(&mut self, label: String, values: impl Iterator<Item = (String, f64)>) {
+        let label_measurements = self
+            .all_measurements
+            .entry(label)
+            .or_insert_with(|| Measurements::new());
+        for (stat, value) in values {
+            label_measurements.update(stat, value);
+        }
+    }
+}
+
 pub fn summarize(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
     let stat_names = rdr
@@ -20,52 +42,43 @@ pub fn summarize(opts: Options) -> Result<()> {
         .skip(1)
         .map(|x| x.to_string())
         .collect::<Vec<_>>();
-    let mut all_measurements = BTreeMap::new();
     let mut stdout = std::io::stdout();
+    let mut state = State::new(opts);
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
         let label = row.next().unwrap().to_string();
 
-        let label_measurements = all_measurements
-            .entry(label.to_string())
-            .or_insert_with(|| Measurements::new());
-        label_measurements.count += 1;
-
         let values = row.map(|x| x.parse().unwrap());
-        for (stat, value) in stat_names.iter().zip(values) {
-            label_measurements
-                .stats
-                .entry(stat.clone())
-                .or_insert_with(|| rolling_stats::Stats::new())
-                .update(value);
-        }
+        state.update(label, stat_names.iter().cloned().zip(values));
 
-        let s = serde_json::to_string(&all_measurements)?;
+        let s = serde_json::to_string(&state.all_measurements)?;
         writeln!(stdout, "{}", s)?;
     }
     Ok(())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Measurements {
-    pub count: usize,
-    #[serde(flatten)]
-    pub stats: BTreeMap<String, rolling_stats::Stats<f64>>,
-}
+pub struct Measurements(pub BTreeMap<String, (usize, rolling_stats::Stats<f64>)>);
+
 impl Measurements {
     pub fn new() -> Measurements {
-        Measurements {
-            count: 0,
-            stats: BTreeMap::new(),
-        }
+        Measurements(BTreeMap::new())
     }
     pub fn get(&self, stat: &str) -> Option<Stats> {
-        let x = self.stats.get(stat)?;
+        let (count, x) = self.0.get(stat)?;
         Some(Stats {
-            count: self.count,
+            count: *count,
             mean: x.mean,
             std_dev: x.std_dev,
         })
+    }
+    fn update(&mut self, stat: String, value: f64) {
+        let (count, x) = self
+            .0
+            .entry(stat)
+            .or_insert_with(|| (0, rolling_stats::Stats::new()));
+        *count += 1;
+        x.update(value);
     }
 }

@@ -4,25 +4,43 @@ use anyhow::*;
 use std::fmt;
 use std::io::{stdin, BufRead, BufReader, Write};
 
-pub fn pretty() -> Result<()> {
-    let mut stdout = term::stdout().ok_or(anyhow!("Couldn't open stdout as a terminal"))?;
-    let mut n = 0; // The number of lines output in the previous iteration
-    for line in BufReader::new(stdin()).lines() {
-        let diffs: Vec<Diff> = serde_json::from_str(&line?)?;
+pub struct State {
+    stdout: Box<term::StdoutTerminal>,
+    /// The number of lines output in the previous iteration
+    n: usize,
+}
+impl State {
+    pub fn new() -> Result<State> {
+        Ok(State {
+            stdout: term::stdout().ok_or(anyhow!("Couldn't open stdout as a terminal"))?,
+            n: 0,
+        })
+    }
+    pub fn print(&mut self, diffs: &[Diff]) -> Result<()> {
+        // Clear the previous output
+        for _ in 0..self.n {
+            self.stdout.cursor_up()?;
+            self.stdout.delete_line()?;
+        }
+        self.n = 0;
         for diff in diffs {
-            // Clear the previous output
-            for _ in 0..n {
-                stdout.cursor_up()?;
-                stdout.delete_line()?;
-            }
-            n = diff.cis.len() + 1;
-            writeln!(stdout, "{}..{}:", diff.from, diff.to)?;
-            let mut out = tabwriter::TabWriter::new(&mut stdout);
-            for (stat, ci) in diff.cis {
-                writeln!(out, "\t{}:\t{}", stat, PrettyCI(ci))?;
+            self.n += diff.cis.len() + 2;
+            writeln!(self.stdout, "\n{}..{}:", diff.from, diff.to)?;
+            let mut out = tabwriter::TabWriter::new(&mut self.stdout);
+            for (stat, ci) in &diff.cis {
+                writeln!(out, "\t{}:\t{}", stat, PrettyCI(*ci))?;
             }
             out.flush()?;
         }
+        Ok(())
+    }
+}
+
+pub fn pretty() -> Result<()> {
+    let mut state = State::new()?;
+    for line in BufReader::new(stdin()).lines() {
+        let diffs: Vec<Diff> = serde_json::from_str(&line?)?;
+        state.print(&diffs)?;
     }
     Ok(())
 }
