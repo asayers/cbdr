@@ -30,6 +30,8 @@ pub struct Options {
     threshold: Option<f64>,
     #[structopt(long)]
     timeout: Option<f64>,
+    #[structopt(long)]
+    deny_positive: bool,
 }
 
 // The cbdr pipeline goes:
@@ -88,6 +90,18 @@ pub fn all_the_things(opts: Options) -> Result<()> {
             }
         }
     }
+
+    if opts.deny_positive
+        && diff
+            .diffs
+            .iter()
+            .flat_map(|diff| diff.cis.values())
+            .flatten()
+            .any(|ci| ci.delta() > ci.r95)
+    {
+        bail!("Stat increased!");
+    }
+
     Ok(())
 }
 
