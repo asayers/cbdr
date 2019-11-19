@@ -18,7 +18,7 @@ impl State {
         let label_measurements = self
             .all_measurements
             .entry(label)
-            .or_insert_with(|| Measurements::new());
+            .or_insert_with(Measurements::new);
         for (stat, value) in values {
             label_measurements.update(stat, value);
         }

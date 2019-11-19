@@ -36,7 +36,7 @@ pub struct Options {
 // This subcommand just runs it all in one process
 pub fn all_the_things(opts: Options) -> Result<()> {
     let mut diff = diff::State::new(opts.diff.pairs());
-    let outfile: Option<File> = opts.out.map(|path| File::create(path)).transpose()?;
+    let outfile: Option<File> = opts.out.map(File::create).transpose()?;
     let (samples, stats) = Samples::new(opts.bench, opts.diff.all_labels())?;
     let mut summarize = summarize::State::new();
     let mut pretty = pretty::State::new()?;

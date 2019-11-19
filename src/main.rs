@@ -31,7 +31,7 @@ fn main() {
             // Ignore EPIPE
             if let Some(e) = e.downcast_ref::<std::io::Error>() {
                 if e.kind() == std::io::ErrorKind::BrokenPipe {
-                    return ();
+                    return;
                 }
             }
             eprintln!(

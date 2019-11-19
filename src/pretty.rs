@@ -11,10 +11,9 @@ pub struct State {
 }
 impl State {
     pub fn new() -> Result<State> {
-        Ok(State {
-            stdout: term::stdout().ok_or(anyhow!("Couldn't open stdout as a terminal"))?,
-            n: 0,
-        })
+        let stdout = term::stdout().ok_or_else(|| anyhow!("Couldn't open stdout as a terminal"))?;
+        let n = 0;
+        Ok(State { stdout, n })
     }
     pub fn print(&mut self, diffs: &[Diff]) -> Result<()> {
         // Clear the previous output

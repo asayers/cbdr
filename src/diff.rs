@@ -49,10 +49,9 @@ impl State {
     pub fn new(pairs: impl Iterator<Item = (Label, Label)>) -> State {
         State {
             diffs: pairs
-                .map(|(from, to)| Diff {
-                    from: from,
-                    to: to,
-                    cis: BTreeMap::new(),
+                .map(|(from, to)| {
+                    let cis = BTreeMap::new();
+                    Diff { from, to, cis }
                 })
                 .collect::<Vec<_>>(),
         }
