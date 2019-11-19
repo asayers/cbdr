@@ -29,6 +29,8 @@ pub struct Options {
     /// The target CI width.  Applies to the 95% CI; units are percent of base.
     #[structopt(long)]
     threshold: Option<f64>,
+    #[structopt(long)]
+    timeout: Option<f64>,
 }
 
 // The cbdr pipeline goes:
@@ -38,6 +40,7 @@ pub struct Options {
 // This subcommand just runs it all in one process
 pub fn all_the_things(opts: Options) -> Result<()> {
     let mut last_print = Instant::now();
+    let start_time = Instant::now();
     let mut diff = diff::State::new(opts.diff.pairs());
     let outfile: Option<File> = opts.out.map(File::create).transpose()?;
     let (samples, stats) = Samples::new(opts.bench, opts.diff.all_labels())?;
@@ -66,6 +69,12 @@ pub fn all_the_things(opts: Options) -> Result<()> {
             if opts
                 .threshold
                 .map_or(false, |t| is_finished(t, &diff.diffs, &stats))
+            {
+                break;
+            }
+            if opts
+                .timeout
+                .map_or(false, |t| start_time.elapsed() > Duration::from_secs_f64(t))
             {
                 break;
             }
