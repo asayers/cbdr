@@ -26,9 +26,9 @@ impl State {
             self.n += diff.cis.len() + 3;
             writeln!(self.stdout, "\n{}..{}:", diff.from, diff.to)?;
             let mut out = tabwriter::TabWriter::new(&mut self.stdout);
-            writeln!(out, "\t\t{}", write_key())?;
+            write_key(&mut out)?;
             for (stat, ci) in &diff.cis {
-                writeln!(out, "\t{}:\t{}", stat, PrettyCI(*ci))?;
+                writeln!(out, "\t{}\t{}", stat, PrettyCI(*ci))?;
             }
             out.flush()?;
         }
@@ -45,17 +45,18 @@ pub fn pretty() -> Result<()> {
     Ok(())
 }
 
-fn write_key() -> String {
+fn write_key(mut out: impl Write) -> Result<()> {
     let style_95 = Style::new().fg(Color::Yellow);
     let style_99 = Style::new().fg(Color::Red);
-    format!(
-        "  {} {} {} {} {}",
-        style_99.paint(format!("{:>9}", "-99%")),
-        style_95.paint(format!("{:>9}", "-95%")),
-        format!("{:>9}", "Δ"),
-        style_95.paint(format!("{:>9}", "+95%")),
-        style_99.paint(format!("{:>9}", "+99%")),
-    )
+    writeln!(
+        out,
+        "\t\t{}\t{}\tΔ\t{}\t{}\tbefore\tafter",
+        style_99.paint(format!("{}", "-99%")),
+        style_95.paint(format!("{}", "-95%")),
+        style_95.paint(format!("{}", "+95%")),
+        style_99.paint(format!("{}", "+99%")),
+    )?;
+    Ok(())
 }
 
 struct PrettyCI(Option<DiffCI>);
@@ -86,15 +87,14 @@ impl fmt::Display for PrettyCI {
             let sr99 = highlight_if!(delta < -ci.r99, s99);
             write!(
                 f,
-                "[ {} {} {} {} {} ]  {}", // \tΔ_99% = [{:>8} ⋯ {:<8}]\t",
-                sl99.paint(format!("{:>9}", l99)),
-                sl95.paint(format!("{:>9}", l95)),
-                format!("{:>9}", center),
-                sr95.paint(format!("{:>9}", r95)),
-                sr99.paint(format!("{:>9}", r99)),
-                Style::new()
-                    .dimmed()
-                    .paint(format!("({:.3} -> {:.3})", ci.mean_x, ci.mean_y)),
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", // \tΔ_99% = [{:>8} ⋯ {:<8}]\t",
+                sl99.paint(format!("{}", l99)),
+                sl95.paint(format!("{}", l95)),
+                format!("{}", center),
+                sr95.paint(format!("{}", r95)),
+                sr99.paint(format!("{}", r99)),
+                Style::new().dimmed().paint(format!("{:.3}", ci.mean_x)),
+                Style::new().dimmed().paint(format!("{:.3}", ci.mean_y)),
             )
         } else {
             write!(
