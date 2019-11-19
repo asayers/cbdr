@@ -1,9 +1,10 @@
 use crate::diff;
+use crate::diff::Diff;
 use crate::label::*;
-use crate::limit;
 use crate::pretty;
 use crate::summarize;
 use anyhow::*;
+use log::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::Write;
@@ -25,8 +26,9 @@ pub struct Options {
     pub out: Option<PathBuf>,
     #[structopt(flatten)]
     pub diff: diff::Options,
-    #[structopt(flatten)]
-    limit: limit::Options,
+    /// The target CI width.  Applies to the 95% CI; units are percent of base.
+    #[structopt(long)]
+    threshold: Option<f64>,
 }
 
 // The cbdr pipeline goes:
@@ -61,12 +63,29 @@ pub fn all_the_things(opts: Options) -> Result<()> {
             summarize.update(label, values.into_iter());
             diff.update(&summarize.all_measurements);
             pretty.print(&diff.diffs)?;
-            if limit::is_finished(&opts.limit, &diff.diffs, &stats) {
+            if opts
+                .threshold
+                .map_or(false, |t| is_finished(t, &diff.diffs, &stats))
+            {
                 break;
             }
         }
     }
     Ok(())
+}
+
+fn is_finished(threshold: f64, diffs: &[Diff], stats: &BTreeSet<String>) -> bool {
+    let worst = diffs
+        .iter()
+        .flat_map(|diff| stats.iter().map(move |stat| *diff.cis.get(stat)?))
+        .map(|x| x.map_or(std::f64::INFINITY, |x| x.r95_pc()))
+        .fold(std::f64::NEG_INFINITY, f64::max);
+    if worst < threshold {
+        true
+    } else {
+        info!("Threshold not reached: {}% > {}%", worst, threshold);
+        false
+    }
 }
 
 struct CsvWriter<T> {

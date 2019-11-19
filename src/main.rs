@@ -1,6 +1,5 @@
 mod run;
 mod diff;
-mod limit;
 mod pretty;
 mod label;
 mod summarize;
@@ -11,7 +10,6 @@ use structopt::StructOpt;
 enum Subcommand {
     Diff(diff::Options),
     Pretty,
-    Limit(limit::Options),
     Summarize,
     Run(run::Options),
 }
@@ -21,7 +19,6 @@ fn main() {
     let result = match Subcommand::from_args() {
         Subcommand::Diff(opts) => diff::diff(opts),
         Subcommand::Pretty => pretty::pretty(),
-        Subcommand::Limit(opts) => limit::limit(opts),
         Subcommand::Summarize => summarize::summarize(),
         Subcommand::Run(opts) => run::all_the_things(opts),
     };
