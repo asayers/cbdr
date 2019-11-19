@@ -29,8 +29,8 @@ how small the smallest regression you care about is (call this `T`).
 4. Does the confidence interval contain zero?  If not, you may have a
    regression.
 
-See [A Benchmarker's Journey](journey.md) for a story which explains one
-might arrive at this method.
+See [A Benchmarker's Journey](journey.md) for a story which explains how
+one might arrive at this method.
 
 There's some stuff in this repo which might help you implement a scheme like
 this yourself; see [here](cbdr.md) for an overview.
