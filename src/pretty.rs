@@ -50,7 +50,7 @@ fn write_key(mut out: impl Write) -> Result<()> {
     let style_99 = Style::new().fg(Color::Red);
     writeln!(
         out,
-        "\t\t{}\t{}\tΔ\t{}\t{}\tbefore\tafter",
+        "\t\t{}\t{}\tΔ\t{}\t{}\tbefore\tafter\tratio",
         style_99.paint(format!("{}", "-99%")),
         style_95.paint(format!("{}", "-95%")),
         style_95.paint(format!("{}", "+95%")),
@@ -95,6 +95,9 @@ impl fmt::Display for PrettyCI {
                 sr99.paint(format!("{}", r99)),
                 Style::new().dimmed().paint(format!("{:.3}", ci.mean_x)),
                 Style::new().dimmed().paint(format!("{:.3}", ci.mean_y)),
+                Style::new()
+                    .dimmed()
+                    .paint(format!("{:.3}", ci.mean_y / ci.mean_x)),
             )
         } else {
             write!(
