@@ -130,7 +130,7 @@ fn run_bench(bench: &Option<String>, label: &Label) -> Result<BTreeMap<String, f
     if let Some(bench) = bench {
         run_bench_with(bench, label)
     } else {
-        run_default_bench(label)
+        run_this_bench(label)
     }
 }
 
@@ -145,20 +145,15 @@ fn run_bench_with(bench: &str, label: &Label) -> Result<BTreeMap<String, f64>> {
         .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-fn run_default_bench(label: &Label) -> Result<BTreeMap<String, f64>> {
-    use std::process::Stdio;
-    let ts = Instant::now();
-    Command::new("/bin/sh")
-        .arg("-c")
+fn run_this_bench(label: &Label) -> Result<BTreeMap<String, f64>> {
+    let out = Command::new(label)
         .arg(&label)
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?
-        .wait()?;
-    let wall_time = ts.elapsed();
-    Ok(vec![("wall_clock".into(), wall_time.as_secs_f64())]
-        .into_iter()
-        .collect())
+        .wait_with_output()?;
+    serde_json::from_slice(&out.stdout)
+        .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 #[cfg(test)]
