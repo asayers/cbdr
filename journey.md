@@ -80,6 +80,7 @@ may have different variances, but we can assume that they're roughly normal
 
 Since we're interested in how much the values have changed, as well as whether
 they're different, we want to show confidence intervals rather than p-values.
+Let's pick a 95% confidence level.
 
 ```
 dump_pcap:
@@ -92,6 +93,25 @@ compute_checksums:
     mega-instructions:  [ +17.781%  +18.123% ]
 ```
 
-And there we have it: we can now proclaim, for example, that dump_pcap's run
-time increased by 13.8-14.2% (p=95%).  That's exactly the kind of statement
-we wanted to be able to make.
+We can now proclaim to our friends and colleagues that, for instance,
+dump_pcap's run time increased by 13.8-14.2% (p=95%).  That's exactly the
+kind of statement we wanted to be able to make.
+
+We can also tell when more data is required.  Suppose we've decided that we
+don't care about regressions smaller than 1%, but we'd really like to know
+if >1% regression occurs.  Then it's simple: if the width of our confidence
+intervals is bigger 1%, we need more data.
+
+Ah, but this dynamic sample size is going to present a problem: we can always
+generate more data of the current commit, but how do we generate more data
+for the base commit?  Well, this is the bad news: you're going to have to
+modify your CI setup so that it can run the benchmarks for both the current
+commit and the merge-base.
+
+Here's the good news: with this done, we can seriously improve the quality
+of our benchmarks!  Whereas before we were relying on old results, now we
+can benchmark the base and the tip commits at the same time.  Generating
+fresh results for the base means your benchmarks will take a bit longer,
+but you're now free from any assumptions about the environment in which
+previous CI runs occurred.  You can do each CI run on a different machine,
+or even in the cloud - it doesn't matter!  This is a huge advantage.
