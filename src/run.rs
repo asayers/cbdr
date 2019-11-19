@@ -35,6 +35,7 @@ pub struct Options {
 //
 // This subcommand just runs it all in one process
 pub fn all_the_things(opts: Options) -> Result<()> {
+    let mut last_print = Instant::now();
     let mut diff = diff::State::new(opts.diff.pairs());
     let outfile: Option<File> = opts.out.map(File::create).transpose()?;
     let (samples, stats) = Samples::new(opts.bench, opts.diff.all_labels())?;
@@ -55,7 +56,8 @@ pub fn all_the_things(opts: Options) -> Result<()> {
         }
         if let Some(ref mut stdout) = stdout {
             stdout.write_csv(&label, &values)?;
-        } else {
+        } else if last_print.elapsed() > Duration::from_millis(100) {
+            last_print = Instant::now();
             summarize.update(label, values.into_iter());
             diff.update(&summarize.all_measurements);
             pretty.print(&diff.diffs)?;
