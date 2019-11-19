@@ -174,11 +174,11 @@ fn run_bench_with(bench: &str, label: &Label) -> Result<BTreeMap<String, f64>> {
     let out = Command::new(bench)
         .arg(&label)
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()?
         .wait_with_output()?;
     serde_json::from_slice(&out.stdout)
-        .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
+        .with_context(|| String::from_utf8_lossy(&out.stderr).into_owned())
 }
 
 fn run_bench_in_shell(label: &Label) -> Result<BTreeMap<String, f64>> {
@@ -186,11 +186,11 @@ fn run_bench_in_shell(label: &Label) -> Result<BTreeMap<String, f64>> {
         .arg("-c")
         .arg(&label)
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()?
         .wait_with_output()?;
     serde_json::from_slice(&out.stdout)
-        .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
+        .with_context(|| String::from_utf8_lossy(&out.stderr).into_owned())
 }
 
 #[cfg(test)]
