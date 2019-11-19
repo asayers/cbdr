@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::*;
 use structopt::*;
 
@@ -128,15 +128,19 @@ impl Iterator for Samples {
 
 fn run_bench(bench: &Option<String>, label: &Label) -> Result<BTreeMap<String, f64>> {
     if let Some(bench) = bench {
-        run_manual_bench(bench, label)
+        run_bench_with(bench, label)
     } else {
         run_default_bench(label)
     }
 }
 
-fn run_manual_bench(bench: &str, label: &Label) -> Result<BTreeMap<String, f64>> {
-    let out = Command::new(bench).arg(&label).output()?;
-    std::io::stderr().write_all(&out.stderr)?; // TODO: swallow
+fn run_bench_with(bench: &str, label: &Label) -> Result<BTreeMap<String, f64>> {
+    let out = Command::new(bench)
+        .arg(&label)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?
+        .wait_with_output()?;
     serde_json::from_slice(&out.stdout)
         .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
