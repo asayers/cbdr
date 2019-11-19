@@ -1,7 +1,7 @@
-mod run;
 mod diff;
-mod pretty;
 mod label;
+mod pretty;
+mod run;
 mod summarize;
 
 use structopt::StructOpt;
