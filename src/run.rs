@@ -149,7 +149,7 @@ fn run_bench(bench: &Option<String>, label: &Label) -> Result<BTreeMap<String, f
     if let Some(bench) = bench {
         run_bench_with(bench, label)
     } else {
-        run_this_bench(label)
+        run_bench_in_shell(label)
     }
 }
 
@@ -164,8 +164,9 @@ fn run_bench_with(bench: &str, label: &Label) -> Result<BTreeMap<String, f64>> {
         .with_context(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-fn run_this_bench(label: &Label) -> Result<BTreeMap<String, f64>> {
-    let out = Command::new(label)
+fn run_bench_in_shell(label: &Label) -> Result<BTreeMap<String, f64>> {
+    let out = Command::new("/bin/sh")
+        .arg("-c")
         .arg(&label)
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
