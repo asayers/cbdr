@@ -1,6 +1,21 @@
 # Continuous Benchmarking, Done Right
 
-## tl;dr
+Continuous integration (which normally means "running the tests on every
+commit") has become standard practise, and for good reason: if you don't
+have good tests and run them regularly, you're bound to allow semantic
+regressions (aka "bugs") into your code.  Continuous benchmarking is likewise
+essential if you don't want to allow performance regressions to happen;
+yet it's far less commonplace.
+
+This is simply because it's harder: tests are deterministic, whereas benchmarks
+are not.  Even "kinda deterministic" proxies such as instruction count are
+quite variable in practice.  The property you care about (be it wall-time,
+max RSS, or whatever) is not a number but is in fact a distribution, and the
+property you _really_ care about is the mean of that distribution; and the
+thing you _actually really_ care about is how much that mean changes when
+you apply a particular patch.
+
+## tl;dr: The Method
 
 You have a decent macro-benchmark.  You have two commits you want to compare
 (presumably: the merge-base vs. the tip of your branch).  You've decided
@@ -17,23 +32,6 @@ how small the smallest regression you care about is (call this `T`).
 There's some stuff in this repo which might help you implement a scheme like
 this yourself.  See journey.md for a story which explains one might arrive
 at this method.
-
-## Discussion
-
-Continuous integration (which normally means "running the tests on every
-commit") has become standard practise, and for good reason: if you don't
-have good tests and run them regularly, you're bound to allow semantic
-regressions (aka "bugs") into your code.  Continuous benchmarking is likewise
-essential if you don't want to allow performance regressions to happen;
-yet it's far less commonplace.
-
-This is simply because it's harder: tests are deterministic, whereas benchmarks
-are not.  Even "kinda deterministic" proxies such as instruction count are
-quite variable in practice.  The property you care about (be it wall-time,
-max RSS, or whatever) is not a number but is in fact a distribution, and the
-property you _really_ care about is the mean of that distribution; and the
-thing you _actually really_ care about is how much that mean changes when
-you apply a particular patch.
 
 ## Multiple benchmarks
 
