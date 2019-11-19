@@ -1,5 +1,4 @@
 use crate::diff;
-use crate::diff::Diff;
 use crate::label::*;
 use crate::pretty;
 use crate::summarize;
@@ -66,11 +65,20 @@ pub fn all_the_things(opts: Options) -> Result<()> {
             summarize.update(label, values.into_iter());
             diff.update(&summarize.all_measurements);
             pretty.print(&diff.diffs)?;
-            if opts
-                .threshold
-                .map_or(false, |t| is_finished(t, &diff.diffs, &stats))
-            {
-                break;
+
+            // Check to see if we're finished
+            if let Some(threshold) = opts.threshold {
+                let worst = diff
+                    .diffs
+                    .iter()
+                    .flat_map(|diff| stats.iter().map(move |stat| *diff.cis.get(stat)?))
+                    .map(|x| x.map_or(std::f64::INFINITY, |x| x.r95_pc()))
+                    .fold(std::f64::NEG_INFINITY, f64::max);
+                if worst < threshold {
+                    break;
+                } else {
+                    info!("Threshold not reached: {}% > {}%", worst, threshold);
+                }
             }
             if opts
                 .timeout
@@ -81,20 +89,6 @@ pub fn all_the_things(opts: Options) -> Result<()> {
         }
     }
     Ok(())
-}
-
-fn is_finished(threshold: f64, diffs: &[Diff], stats: &BTreeSet<String>) -> bool {
-    let worst = diffs
-        .iter()
-        .flat_map(|diff| stats.iter().map(move |stat| *diff.cis.get(stat)?))
-        .map(|x| x.map_or(std::f64::INFINITY, |x| x.r95_pc()))
-        .fold(std::f64::NEG_INFINITY, f64::max);
-    if worst < threshold {
-        true
-    } else {
-        info!("Threshold not reached: {}% > {}%", worst, threshold);
-        false
-    }
 }
 
 struct CsvWriter<T> {
