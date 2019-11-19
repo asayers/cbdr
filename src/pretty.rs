@@ -60,6 +60,15 @@ fn write_key() -> String {
 
 struct PrettyCI(Option<DiffCI>);
 
+macro_rules! highlight_if {
+    ($cond: expr, $x:expr) => {
+        if $cond {
+            $x.bold()
+        } else {
+            $x.dimmed()
+        }
+    };
+}
 impl fmt::Display for PrettyCI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ci) = self.0 {
@@ -71,10 +80,10 @@ impl fmt::Display for PrettyCI {
             let r99 = format!("{:+.3}%", 100. * (delta + ci.r99) / ci.mean_x);
             let s95 = Style::new(); // .fg(Color::Yellow);
             let s99 = Style::new(); // .fg(Color::Red);
-            let sl95 = if delta > ci.r95 { s95.bold() } else { s95.dimmed() };
-            let sr95 = if delta < -ci.r95 { s95.bold() } else { s95.dimmed() };
-            let sl99 = if delta > ci.r99 { s99.bold() } else { s99.dimmed() };
-            let sr99 = if delta < -ci.r99 { s99.bold() } else { s99.dimmed() };
+            let sl95 = highlight_if!(delta > ci.r95, s95);
+            let sr95 = highlight_if!(delta < -ci.r95, s95);
+            let sl99 = highlight_if!(delta > ci.r99, s99);
+            let sr99 = highlight_if!(delta < -ci.r99, s99);
             write!(
                 f,
                 "[ {} {} {} {} {} ]  {}", // \tΔ_99% = [{:>8} ⋯ {:<8}]\t",
