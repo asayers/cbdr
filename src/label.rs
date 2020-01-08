@@ -1,9 +1,8 @@
 use anyhow::*;
-use serde::*;
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, PartialOrd, Ord, Eq)]
+#[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq)]
 pub struct Label(pub String); // TODO: &'static str
 impl From<String> for Label {
     fn from(x: String) -> Label {
