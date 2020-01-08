@@ -166,7 +166,8 @@ fn run_bench(bench: &Option<String>, label: &Label) -> Result<BTreeMap<String, f
     if let Some(bench) = bench {
         run_bench_with(bench, label)
     } else {
-        run_bench_in_shell(label)
+        // run_bench_in_shell(label)
+        time_bench_in_shell(label)
     }
 }
 
@@ -193,10 +194,54 @@ fn run_bench_in_shell(label: &Label) -> Result<BTreeMap<String, f64>> {
         .with_context(|| String::from_utf8_lossy(&out.stderr).into_owned())
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test() {
-        assert_eq!(1 + 1, 2)
-    }
+fn time_bench_in_shell(label: &Label) -> Result<BTreeMap<String, f64>> {
+    let mut cmd = Command::new("/bin/sh");
+    cmd.arg("-c")
+        .arg(&label)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    let ret = time_in_shell_posix(cmd)?;
+    #[cfg(not(unix))]
+    let ret = time_in_shell_fallback(cmd)?;
+    Ok(ret)
+}
+
+#[allow(unused)]
+fn time_in_shell_fallback(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
+    let ts = Instant::now();
+    cmd.spawn()?.wait()?;
+    let d = ts.elapsed();
+
+    let mut ret = BTreeMap::default();
+    ret.insert("wall_time".into(), d.as_secs_f64());
+    Ok(ret)
+}
+
+#[cfg(unix)]
+fn time_in_shell_posix(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
+    // times(2) and sysconf(2) are both POSIX
+    let mut tms_before = libc::tms {
+        tms_utime: 0,
+        tms_stime: 0,
+        tms_cutime: 0,
+        tms_cstime: 0,
+    };
+    let mut tms_after = tms_before.clone();
+
+    unsafe { libc::times(&mut tms_before as *mut libc::tms) };
+    let ts = Instant::now();
+    cmd.spawn()?.wait()?;
+    let d = ts.elapsed();
+    unsafe { libc::times(&mut tms_after as *mut libc::tms) };
+
+    let ticks_per_sec = unsafe { libc::sysconf(libc::_SC_CLK_TCK) } as f64;
+    let utime = (tms_after.tms_cutime - tms_before.tms_cutime) as f64 / ticks_per_sec;
+    let stime = (tms_after.tms_cstime - tms_before.tms_cstime) as f64 / ticks_per_sec;
+
+    let mut ret = BTreeMap::default();
+    ret.insert("wall_time".into(), d.as_secs_f64());
+    ret.insert("user_time".into(), utime);
+    ret.insert("sys_time".into(), stime);
+    Ok(ret)
 }
