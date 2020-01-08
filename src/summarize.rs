@@ -1,93 +1,71 @@
+use crate::diff::*;
 use crate::label::*;
-use anyhow::*;
 use confidence::*;
-use serde::*;
 use std::collections::BTreeMap;
-use std::io::Write;
 
-pub struct State {
-    pub all_measurements: BTreeMap<Label, Measurements>,
-}
-impl State {
-    pub fn new() -> State {
-        State {
-            all_measurements: BTreeMap::new(),
+#[derive(Default)]
+pub struct Measurements(BTreeMap<(Label, String), Statistics>);
+
+impl Measurements {
+    pub fn update(&mut self, label: Label, values: impl Iterator<Item = (String, f64)>) {
+        for (stat, value) in values {
+            let Statistics(count, x) = self.0.entry((label.clone(), stat)).or_default();
+            *count += 1;
+            x.update(value);
         }
     }
-    pub fn update(&mut self, label: Label, values: impl Iterator<Item = (String, f64)>) {
-        let label_measurements = self
-            .all_measurements
-            .entry(label)
-            .or_insert_with(Measurements::new);
-        for (stat, value) in values {
-            label_measurements.update(stat, value);
-        }
+    pub fn iter_label(&self, label: Label) -> impl Iterator<Item = (&str, &Statistics)> {
+        self.0
+            .range((label.clone(), "".to_string())..)
+            .take_while(move |((l, _), _)| *l == label)
+            .map(|((_, stat_name), stats)| (stat_name.as_str(), stats))
+    }
+
+    pub fn diff(&self, from: Label, to: Label) -> Diff {
+        let xs = self.iter_label(from);
+        let ys = self.iter_label(to);
+        Diff::new(xs, ys)
     }
 
     pub fn guess_pairs(&self) -> Vec<(Label, Label)> {
-        let mut labels = self
-            .all_measurements
+        let mut scores: Vec<(Label, f64)> = vec![];
+        let mut cur_score = 0.;
+        let mut cur_label = None;
+        for ((label, _), stats) in &self.0 {
+            if Some(label) != cur_label {
+                if let Some(l) = cur_label {
+                    scores.push((l.clone(), cur_score));
+                }
+                cur_label = Some(label);
+                cur_score = 0.;
+            }
+            cur_score += stats.1.mean;
+        }
+        if let Some(l) = cur_label {
+            scores.push((l.clone(), cur_score));
+        }
+        scores.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
+        scores
             .iter()
-            .map(|(label, measurements)| (label.clone(), measurements.score()))
-            .collect::<Vec<_>>();
-        labels.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
-        labels
-            .iter()
-            .zip(labels.iter().skip(1))
+            .zip(scores.iter().skip(1))
             .map(|(x, y)| (x.0.clone(), y.0.clone()))
             .collect()
     }
 }
 
-pub fn summarize() -> Result<()> {
-    let mut rdr = csv::Reader::from_reader(std::io::stdin());
-    let stat_names = rdr
-        .headers()
-        .unwrap()
-        .into_iter()
-        .skip(1)
-        .map(|x| x.to_string())
-        .collect::<Vec<_>>();
-    let mut stdout = std::io::stdout();
-    let mut state = State::new();
-    for row in rdr.into_records() {
-        let row = row?;
-        let mut row = row.into_iter();
-        let label = Label::from(row.next().unwrap().to_string());
-
-        let values = row.map(|x| x.parse().unwrap());
-        state.update(label, stat_names.iter().cloned().zip(values));
+#[derive(Clone, Debug)]
+pub struct Statistics(usize, rolling_stats::Stats<f64>);
+impl Default for Statistics {
+    fn default() -> Statistics {
+        Statistics(0, rolling_stats::Stats::new())
     }
-
-    let s = serde_json::to_string(&state.all_measurements)?;
-    writeln!(stdout, "{}", s)?;
-    Ok(())
 }
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Measurements(pub BTreeMap<String, (usize, rolling_stats::Stats<f64>)>);
-
-impl Measurements {
-    pub fn new() -> Measurements {
-        Measurements(BTreeMap::new())
-    }
-    pub fn get(&self, stat: &str) -> Option<Stats> {
-        let (count, x) = self.0.get(stat)?;
-        Some(Stats {
-            count: *count,
-            mean: x.mean,
-            std_dev: x.std_dev,
-        })
-    }
-    fn update(&mut self, stat: String, value: f64) {
-        let (count, x) = self
-            .0
-            .entry(stat)
-            .or_insert_with(|| (0, rolling_stats::Stats::new()));
-        *count += 1;
-        x.update(value);
-    }
-    pub fn score(&self) -> f64 {
-        self.0.values().map(|(_, stats)| stats.mean).sum::<f64>()
+impl Into<Stats> for &Statistics {
+    fn into(self) -> Stats {
+        Stats {
+            count: self.0,
+            mean: self.1.mean,
+            std_dev: self.1.std_dev,
+        }
     }
 }

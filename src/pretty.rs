@@ -1,8 +1,10 @@
 use crate::diff::*;
+use crate::label::*;
 use ansi_term::{Color, Style};
 use anyhow::*;
+use std::collections::BTreeMap;
 use std::fmt;
-use std::io::{stdin, BufRead, BufReader, Write};
+use std::io::Write;
 
 pub struct State {
     stdout: Box<term::StdoutTerminal>,
@@ -15,34 +17,25 @@ impl State {
         let n = 0;
         Ok(State { stdout, n })
     }
-    pub fn print(&mut self, diffs: &[Diff]) -> Result<()> {
+    pub fn print(&mut self, diffs: &BTreeMap<(Label, Label), Diff>) -> Result<()> {
         // Clear the previous output
         for _ in 0..self.n {
             self.stdout.cursor_up()?;
             self.stdout.delete_line()?;
         }
         self.n = 0;
-        for diff in diffs {
-            self.n += diff.cis.len() + 3;
-            writeln!(self.stdout, "\n{}..{}:", diff.from, diff.to)?;
+        for ((from, to), diff) in diffs {
+            self.n += diff.0.len() + 3;
+            writeln!(self.stdout, "\n{}..{}:", from, to)?;
             let mut out = tabwriter::TabWriter::new(&mut self.stdout);
             write_key(&mut out)?;
-            for (stat, ci) in &diff.cis {
+            for (stat, ci) in &diff.0 {
                 writeln!(out, "\t{}\t{}", stat, PrettyCI(*ci))?;
             }
             out.flush()?;
         }
         Ok(())
     }
-}
-
-pub fn pretty() -> Result<()> {
-    let mut state = State::new()?;
-    for line in BufReader::new(stdin()).lines() {
-        let diffs: Vec<Diff> = serde_json::from_str(&line?)?;
-        state.print(&diffs)?;
-    }
-    Ok(())
 }
 
 fn write_key(mut out: impl Write) -> Result<()> {

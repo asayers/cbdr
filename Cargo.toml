@@ -13,6 +13,7 @@ anyhow = "1.0"
 confidence = { path = "confidence" }
 csv = "1.1"
 env_logger = "0.7"
+itertools = "0.8"
 libc = "0.2"
 log = "0.4"
 rand = "0.7"

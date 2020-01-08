@@ -1,8 +1,8 @@
-use crate::diff;
 use crate::label::*;
 use crate::pretty;
 use crate::summarize;
 use anyhow::*;
+use std::collections::BTreeMap;
 use std::time::*;
 use structopt::*;
 
@@ -13,18 +13,34 @@ pub struct Options {
     // threshold: Option<f64>,
     #[structopt(long)]
     deny_positive: bool,
-    #[structopt(flatten)]
-    diff_opts: diff::Options,
+    /// A "base" label.  If specified, all labels will be compared to this.
+    #[structopt(long)]
+    pub base: Option<String>,
+    /// Labels to compare.  If "base" is not specified, they'll be compared
+    /// consecutively.
+    pub labels: Vec<String>,
+}
+impl Options {
+    pub fn pairs(&self) -> Vec<(Label, Label)> {
+        if let Some(base) = &self.base {
+            let base = Label::from(base.clone());
+            self.labels
+                .iter()
+                .cloned()
+                .map(Label::from)
+                .map(move |to| (base.clone(), to))
+                .collect()
+        } else {
+            let iter = self.labels.iter().cloned().map(Label::from);
+            iter.clone().zip(iter.skip(1)).collect()
+        }
+    }
 }
 
-// The cbdr pipeline goes:
-//
-// sample -> summarize -> rate-limit -> diff -> pretty -> check-finished
-//
-// This subcommand just everything except sample
+// summarize -> rate-limit -> diff -> pretty print
 pub fn analyze(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
-    let mut summarize = summarize::State::new();
+    let mut measurements = summarize::Measurements::default();
     let stat_names = rdr
         .headers()
         .unwrap()
@@ -34,17 +50,21 @@ pub fn analyze(opts: Options) -> Result<()> {
         .collect::<Vec<_>>();
 
     let mut pretty = pretty::State::new()?;
-    let explicit_pairs = opts.diff_opts.pairs();
+    let explicit_pairs = opts.pairs();
     macro_rules! print {
         () => {{
-            let mut diff = if explicit_pairs.is_empty() {
-                diff::State::new(summarize.guess_pairs().into_iter())
+            let pairs = if explicit_pairs.is_empty() {
+                measurements.guess_pairs()
             } else {
-                diff::State::new(explicit_pairs.iter().cloned())
+                explicit_pairs.clone()
             };
-            diff.update(&summarize.all_measurements);
-            pretty.print(&diff.diffs)?;
-            diff
+            let mut diffs = BTreeMap::default();
+            for (from, to) in pairs {
+                let diff = measurements.diff(from.clone(), to.clone());
+                diffs.insert((from, to), diff);
+            }
+            pretty.print(&diffs)?;
+            diffs
         }};
     }
 
@@ -54,7 +74,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         let mut row = row.into_iter();
         let label = Label::from(row.next().unwrap().to_string());
         let values = row.map(|x| x.parse().unwrap());
-        summarize.update(label, stat_names.iter().cloned().zip(values));
+        measurements.update(label, stat_names.iter().cloned().zip(values));
 
         if last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();
@@ -78,17 +98,18 @@ pub fn analyze(opts: Options) -> Result<()> {
     }
 
     // Print the last set of diffs
-    let diff = print!();
+    let diffs = print!();
 
-    if opts.deny_positive
-        && diff
-            .diffs
-            .iter()
-            .flat_map(|diff| diff.cis.values())
-            .flatten()
-            .any(|ci| ci.delta() > ci.r95)
-    {
-        bail!("Stat increased!");
+    if opts.deny_positive {
+        for ((from, to), diff) in diffs {
+            for (stat_name, ci) in diff.0 {
+                if let Some(ci) = ci {
+                    if ci.delta() > ci.r95 {
+                        bail!("{}..{}: {} increased!", from, to, stat_name);
+                    }
+                }
+            }
+        }
     }
 
     Ok(())
