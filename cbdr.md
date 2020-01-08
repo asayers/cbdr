@@ -1,75 +1,58 @@
 # CBDR
 
-This repo contains a suite of tools called `cbdr`.  Here's an example comparing
-`cargo check` to `cargo test`:
+This repo contains a suite of tools called `cbdr`.  `cbdr sample` repeatedly
+selects a program at random from a list and benchmarks it.
 
 ```
-cbdr run 'cargo c' 'cargo t'
+cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | head | column -s, -t
+Warming up md5sum foo.json...
+Warming up sha1sum foo.json...
+Warming up sha256sum foo.json...
+target              sys_time  user_time  wall_time
+md5sum foo.json     0.01      0.03       0.026581489
+sha256sum foo.json  0         0.07       0.072450366
+sha1sum foo.json    0         0.04       0.041179884
+md5sum foo.json     0         0.02       0.025899522
+md5sum foo.json     0.01      0.02       0.026360146
+sha256sum foo.json  0         0.07       0.071064774
+md5sum foo.json     0         0.02       0.026017469
+sha1sum foo.json    0         0.03       0.031259894
+md5sum foo.json     0.01      0.03       0.027783781
 ```
 
-Here's what it looks like:
+Pipe the output into `cbdr analyze` to see a (live-updating) summary of the
+differences between the benchmarked programs.
 
-<img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
+```
+cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | cbdr analyze
+Warming up md5sum foo.json...
+Warming up sha1sum foo.json...
+Warming up sha256sum foo.json...
 
-You can also save the raw benchmark results with `cbdr run --stdout`
-or `cbdr run --out=<FILE>`, and then post-process them with `cbdr
-{summaize,diff,pretty}`.
+md5sum foo.json..sha1sum foo.json:
+               -99%       -95%       Δ         +95%      +99%      before  after  ratio
+    sys_time   -155.477%  -124.892%  -33.908%  +57.076%  +87.660%  0.003   0.002  0.661
+    user_time  +5.935%    +9.853%    +21.609%  +33.366%  +37.283%  0.026   0.032  1.216
+    wall_time  +13.302%   +14.955%   +19.846%  +24.737%  +26.390%  0.029   0.034  1.198
+
+sha1sum foo.json..sha256sum foo.json:
+               -99%       -95%       Δ          +95%       +99%       before  after  ratio
+    sys_time   -103.011%  -57.591%   +78.462%   +214.514%  +259.934%  0.002   0.003  1.785
+    user_time  +124.173%  +127.527%  +137.625%  +147.724%  +151.078%  0.032   0.075  2.376
+    wall_time  +120.274%  +121.936%  +126.942%  +131.948%  +133.610%  0.034   0.078  2.269
+```
 
 ## Interpreting the results
 
-Let's say we want to find out how much slower sha1sum is than mdf5sum.  We run this command:
+Let's look at the table comparing mdf5 to sha1.  Looking at the wall-clock
+time, it indeed looks to be about 20% slower.  That said, you should avoid
+the temptation reduce the results to a single number.  The statistically
+responsible way to report this benchmark to your colleagues would be like this:
 
-```
-cbdr run --bench=bench.sh "md5sum capture.pcapng.xz" "sha1sum capture.pcapng.xz"
-```
+> sha1sum was 15-25% slower than md5sum by wall-clock (p=95%)
 
-And get the following output:
+By contrast, looking at the system time, we see that the difference is between
+-125% and +57%.  Because the confidence interval contains 0%, we don't have
+enough evidence to say that the time spent in the kernel is any different.
 
-```
-Warming up md5sum capture.pcapng.xz...
-Warming up sha1sum capture.pcapng.xz...
-
-md5sum capture.pcapng.xz..sha1sum capture.pcapng.xz:
-                       -99%      -95%         Δ      +95%      +99%
-    max_rss:    [   -2.281%   -1.799%   -0.297%   +1.205%   +1.687% ]  (2033.129 -> 2027.086)
-    wall_time:  [  +26.723%  +27.540%  +30.089%  +32.637%  +33.454% ]  (0.756 -> 0.983)
-```
-
-Looking at the wall-clock time, it indeed looks to be about 30% slower.
-That said, you should avoid the temptation reduce the results to a single
-number.  The statistically responsible way to report this benchmark to your
-colleagues would be like this:
-
-> sha1sum was 27.5%-32.6% slower than md5sum (p=95%)
-
-By contrast, looking at the "max_rss" row, we see that the difference is
-between -1.8% and +1.2%.  This means that we don't have enough evidence to
-support the idea that the memory usage is different, one way or the other.
-
-> Memory usage was within noise (p=95%)
-
-In case you're wondering, the bench.sh script above looks like this:
-
-```
-out=$(mktemp) && /usr/bin/time -o$out -f'{ "wall_time": %e, "max_rss": %M }' $@ &>/dev/null && cat $out
-```
-
-Of course, you could measure other things instead.  Here's a run using
-`perf stat`:
-
-```
-                              -99%      -95%         Δ      +95%      +99%
-    branch_misses:     [  +49.745%  +50.398%  +52.433%  +54.468%  +55.121% ]  (139978.000 -> 213372.333)
-    branches:          [ +560.242% +560.259% +560.312% +560.366% +560.383% ]  (22268445.685 -> 147041291.940)
-    context_switches:  [   -4.609%  +10.518%  +57.661% +104.805% +119.932% ]  (2.696 -> 4.250)
-    cpu_migrations:    [ -326.871% -191.738% +228.571% +648.880% +784.014% ]  (0.011 -> 0.036)
-    cpu_utilization:   [   -0.006%   -0.002%   +0.010%   +0.021%   +0.025% ]  (1.000 -> 1.000)
-    cycles:            [  +17.691%  +17.730%  +17.850%  +17.971%  +18.010% ]  (2794011079.902 -> 3292753851.464)
-    instructions:      [ +137.573% +137.574% +137.575% +137.576% +137.577% ]  (4584444365.533 -> 10891491773.631)
-    page_faults:       [   -0.672%   -0.384%   +0.514%   +1.413%   +1.701% ]  (75.054 -> 75.440)
-    task_clock:        [  +29.378%  +29.623%  +30.380%  +31.138%  +31.383% ]  (729.043 -> 950.529)
-```
-
-Notice that cycles and instruction count are relatively stable (ie. have
-tight CIs) compared to task_clock, which is why people like them as a proxy.
-They're only loosely correlated with wall time, however.
+> The difference in system time was within noise (p=95%)
