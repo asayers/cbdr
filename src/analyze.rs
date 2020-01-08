@@ -63,7 +63,7 @@ pub fn analyze(opts: Options) -> Result<()> {
                 let diff = measurements.diff(from.clone(), to.clone());
                 diffs.insert((from, to), diff);
             }
-            pretty.print(&diffs)?;
+            pretty.print(&stat_names, &measurements, &diffs)?;
             diffs
         }};
     }
@@ -104,7 +104,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         for ((from, to), diff) in diffs {
             for (stat_name, ci) in diff.0 {
                 if let Some(ci) = ci {
-                    if ci.delta() > ci.r95 {
+                    if ci.delta() > ci.ci(0.95) {
                         bail!("{}..{}: {} increased!", from, to, stat_name);
                     }
                 }

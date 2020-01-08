@@ -162,8 +162,8 @@ fn time_in_shell_posix(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
     let stime = (tms_after.tms_cstime - tms_before.tms_cstime) as f64 / ticks_per_sec;
 
     let mut ret = BTreeMap::default();
-    ret.insert("wall_time".into(), d.as_secs_f64());
-    ret.insert("user_time".into(), utime);
-    ret.insert("sys_time".into(), stime);
+    ret.insert("wall time".into(), d.as_secs_f64());
+    ret.insert("user time".into(), utime);
+    ret.insert("sys time".into(), stime);
     Ok(ret)
 }

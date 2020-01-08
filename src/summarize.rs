@@ -4,7 +4,7 @@ use confidence::*;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-pub struct Measurements(BTreeMap<(Label, String), Statistics>);
+pub struct Measurements(pub BTreeMap<(Label, String), Statistics>);
 
 impl Measurements {
     pub fn update(&mut self, label: Label, values: impl Iterator<Item = (String, f64)>) {
@@ -54,7 +54,7 @@ impl Measurements {
 }
 
 #[derive(Clone, Debug)]
-pub struct Statistics(usize, rolling_stats::Stats<f64>);
+pub struct Statistics(pub usize, pub rolling_stats::Stats<f64>);
 impl Default for Statistics {
     fn default() -> Statistics {
         Statistics(0, rolling_stats::Stats::new())

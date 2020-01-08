@@ -4,7 +4,7 @@ use std::fmt;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, PartialOrd, Ord, Eq)]
-pub struct Label(String); // TODO: &'static str
+pub struct Label(pub String); // TODO: &'static str
 impl From<String> for Label {
     fn from(x: String) -> Label {
         // Label(&*Box::leak(x.into_boxed_str()))
