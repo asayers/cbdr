@@ -30,7 +30,7 @@ mod tests {
 
         macro_rules! assert_rel_eq {
             ($p:expr, $dof:expr, $exp:expr) => {
-                assert_relative_eq!(student_t_inv_cdf($p, $dof), $exp, max_relative = 0.001);
+                assert_relative_eq!(inv_cdf($p, $dof), $exp, max_relative = 0.001);
             };
         }
 
