@@ -18,26 +18,18 @@ pub struct Options {
     pub labels: Vec<String>,
 }
 impl Options {
-    pub fn all_labels(self) -> Vec<Label> {
-        self.base
-            .into_iter()
-            .chain(self.labels.into_iter())
-            .map(Label::from)
-            .collect()
-    }
-    pub fn pairs(&self) -> Box<dyn Iterator<Item = (Label, Label)> + '_> {
+    pub fn pairs(&self) -> Vec<(Label, Label)> {
         if let Some(base) = &self.base {
             let base = Label::from(base.clone());
-            Box::new(
-                self.labels
-                    .iter()
-                    .cloned()
-                    .map(Label::from)
-                    .map(move |to| (base.clone(), to)),
-            )
+            self.labels
+                .iter()
+                .cloned()
+                .map(Label::from)
+                .map(move |to| (base.clone(), to))
+                .collect()
         } else {
             let iter = self.labels.iter().cloned().map(Label::from);
-            Box::new(iter.clone().zip(iter.skip(1)))
+            iter.clone().zip(iter.skip(1)).collect()
         }
     }
 }
@@ -68,7 +60,7 @@ impl State {
 }
 
 pub fn diff(opts: Options) -> Result<()> {
-    let mut state = State::new(opts.pairs());
+    let mut state = State::new(opts.pairs().into_iter());
     for line in BufReader::new(std::io::stdin()).lines() {
         let measurements: BTreeMap<Label, Measurements> = serde_json::from_str(&line?)?;
         state.update(&measurements);

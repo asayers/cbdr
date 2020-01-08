@@ -23,6 +23,20 @@ impl State {
             label_measurements.update(stat, value);
         }
     }
+
+    pub fn guess_pairs(&self) -> Vec<(Label, Label)> {
+        let mut labels = self
+            .all_measurements
+            .iter()
+            .map(|(label, measurements)| (label.clone(), measurements.score()))
+            .collect::<Vec<_>>();
+        labels.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
+        labels
+            .iter()
+            .zip(labels.iter().skip(1))
+            .map(|(x, y)| (x.0.clone(), y.0.clone()))
+            .collect()
+    }
 }
 
 pub fn summarize() -> Result<()> {
@@ -72,5 +86,8 @@ impl Measurements {
             .or_insert_with(|| (0, rolling_stats::Stats::new()));
         *count += 1;
         x.update(value);
+    }
+    pub fn score(&self) -> f64 {
+        self.0.values().map(|(_, stats)| stats.mean).sum::<f64>()
     }
 }
