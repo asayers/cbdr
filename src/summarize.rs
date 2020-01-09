@@ -4,21 +4,22 @@ use confidence::*;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-pub struct Measurements(pub BTreeMap<(Label, String), Statistics>);
+pub struct Measurements {
+    pub stats: BTreeMap<(Label, Metric), Statistics>,
+}
 
 impl Measurements {
-    pub fn update(&mut self, label: Label, values: impl Iterator<Item = (String, f64)>) {
+    pub fn update(&mut self, label: Label, values: impl Iterator<Item = (Metric, f64)>) {
         for (stat, value) in values {
-            let Statistics(count, x) = self.0.entry((label.clone(), stat)).or_default();
+            let Statistics(count, x) = self.stats.entry((label, stat)).or_default();
             *count += 1;
             x.update(value);
         }
     }
-    pub fn iter_label(&self, label: Label) -> impl Iterator<Item = (&str, &Statistics)> {
-        self.0
-            .range((label.clone(), "".to_string())..)
-            .take_while(move |((l, _), _)| *l == label)
-            .map(|((_, stat_name), stats)| (stat_name.as_str(), stats))
+    pub fn iter_label(&self, label: Label) -> impl Iterator<Item = (Metric, &Statistics)> {
+        self.stats
+            .range((label, Metric::MIN)..=(label, Metric::MAX))
+            .map(|((_, metric), stats)| (*metric, stats))
     }
 
     pub fn diff(&self, from: Label, to: Label) -> Diff {
@@ -31,7 +32,7 @@ impl Measurements {
         let mut scores: Vec<(Label, f64)> = vec![];
         let mut cur_score = 0.;
         let mut cur_label = None;
-        for ((label, _), stats) in &self.0 {
+        for ((label, _), stats) in &self.stats {
             if Some(label) != cur_label {
                 if let Some(l) = cur_label {
                     scores.push((l.clone(), cur_score));

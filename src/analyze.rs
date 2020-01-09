@@ -38,12 +38,12 @@ impl Options {
 pub fn analyze(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
     let mut measurements = summarize::Measurements::default();
-    let stat_names = rdr
+    let all_metrics = rdr
         .headers()
         .unwrap()
         .into_iter()
         .skip(1)
-        .map(|x| x.to_string())
+        .map(|x| Metric::from(x))
         .collect::<Vec<_>>();
 
     let mut pretty = pretty::State::new()?;
@@ -60,7 +60,7 @@ pub fn analyze(opts: Options) -> Result<()> {
                 let diff = measurements.diff(from.clone(), to.clone());
                 diffs.push((from, to, diff));
             }
-            pretty.print(&stat_names, &measurements, &diffs)?;
+            pretty.print(&all_metrics, &measurements, &diffs)?;
             diffs
         }};
     }
@@ -71,7 +71,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         let mut row = row.into_iter();
         let label = Label::from(row.next().unwrap());
         let values = row.map(|x| x.parse().unwrap());
-        measurements.update(label, stat_names.iter().cloned().zip(values));
+        measurements.update(label, all_metrics.iter().cloned().zip(values));
 
         if last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();

@@ -19,7 +19,7 @@ impl State {
     }
     pub fn print(
         &mut self,
-        stat_names: &[String],
+        all_metrics: &[Metric],
         measurements: &Measurements,
         diffs: &[(Label, Label, Diff)],
     ) -> Result<()> {
@@ -33,25 +33,25 @@ impl State {
         {
             let mut out = tabwriter::TabWriter::new(&mut self.stdout);
             write!(out, "benchmark\tsamples")?;
-            for stat_name in stat_names {
-                write!(out, "\t{}", stat_name.clone())?;
+            for metric in all_metrics {
+                write!(out, "\t{}", metric)?;
             }
             writeln!(out)?;
             self.n += 1;
             for label in measurements.labels() {
                 let count = measurements
-                    .iter_label(label.clone())
+                    .iter_label(label)
                     .map(|x| (x.1).0)
                     .next()
                     .unwrap_or(0);
                 write!(out, "{}\t{}", label, count)?;
-                for stat_name in stat_names {
+                for metric in all_metrics {
                     write!(
                         out,
                         "\t{:.3}",
                         measurements
-                            .0
-                            .get(&(label, stat_name.clone()))
+                            .stats
+                            .get(&(label, *metric))
                             .map(|stats| stats.1.mean)
                             .unwrap_or(std::f64::NAN)
                     )?;
