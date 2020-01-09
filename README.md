@@ -19,26 +19,30 @@ you apply a particular patch.
 
 The situation:
 
-* You've got a feature branch you want to merge into master.
-* You have a decent macro-benchmark called `bench.sh`.  It takes about a second to run.
-* You've decided that you don't care about regressions smaller than 5%.
-* You've decided that you're OK with getting false-positives 0.1% of the time.
+* Your repo contains a macro-benchmark called `bench.sh`.  It only takes a
+  few seconds to run.
+* If a feature branch increases `bench.sh`'s runtime by more than 5%, it
+  should be blocked from merging.
+* Sometimes you're going to get false-positives, meaning you'll have to
+  re-run the CI.  We expect this to happen 0.1% of the time.
 
 The method:
 
-1. Check out the feature branch in one worktree and the merge-base in another.
+1. Check out the feature branch in one worktree and its merge-base in another.
 2. Randomly pick one of your two checkouts and run `bench.sh`, measuring the
    time it takes to run.  Append the result to that checkout's "measurements"
    file.
 3. Compute the 99.9% confidence interval for the diffence of the means.
-4. Is the width of the confidence interval still bigger than 5%?  If "yes",
-   go back to step 2.
-5. The confience interval is now tight enough to spot a 5% regression. Is
-   the lower bound less than zero?  If "yes", you're good to merge!
-6. Throw away the measurements you took - you don't want to re-use them.
+4. Is the width of the confidence interval still bigger than 5%?
+    * If "yes", go back to step 2.
+    * If "no", the confience interval is now tight enough to spot a 5%
+      regression; proceed.
+5. Is the lower bound less than zero?
+    * If "yes", you're good to merge!
+    * If "no", it looks like there's a regression.
 
-If you want to implement something like this yourself, here are some [tools
-to help you do it](cbdr.md).
+If you want to implement something like this yourself, this repo contains a
+[tool to help you do it](cbdr.md).
 
 ## Common bad practice
 
