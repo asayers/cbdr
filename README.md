@@ -17,32 +17,34 @@ you apply a particular patch.
 
 ## An illustative example
 
-The situation:
-
-* Your repo contains a macro-benchmark called `bench.sh`.  It only takes a
-  few seconds to run.
-* If a feature branch increases `bench.sh`'s runtime by more than 5%, it
-  should be blocked from merging.
-* Sometimes you're going to get false-positives, meaning you'll have to
-  re-run the CI.  We expect this to happen 0.1% of the time.
-
-The method:
+Your repo contains a macro-benchmark called `bench.sh`.  It only takes a few
+seconds to run.  If a feature branch increases `bench.sh`'s running time by
+more than 5%, it should be blocked from merging.  Here's the method:
 
 1. Check out the feature branch in one worktree and its merge-base in another.
 2. Randomly pick one of your two checkouts and run `bench.sh`, measuring the
    time it takes to run.  Append the result to that checkout's "measurements"
    file.
-3. Compute the 99.9% confidence interval for the diffence of the means.
-4. Is the width of the confidence interval still bigger than 5%?
-    * If "yes", go back to step 2.
+3. Compute the 99.9% one-tailed [confidence interval] for the difference of
+   the means.  The choice of α=0.1% means that one in a thousand runs will
+   yield a false positive.
+4. Is the width of the confidence interval still bigger than 5% of the
+   merge-base's mean time?
+    * If "yes", go back to step 2.  Every new measurement will shrink the
+      confience interval a bit.
     * If "no", the confience interval is now tight enough to spot a 5%
       regression; proceed.
 5. Is the lower bound less than zero?
-    * If "yes", you're good to merge!
-    * If "no", it looks like there's a regression.
+    * If "yes", there's no evidence that the feature-branch's mean running time
+      is larger than the merge-base's mean running time; you're good to merge!
+    * If "no", it looks like the running time has regressed.  Take a look
+      at the confidence interval to see how bad the regression is, and
+      decide whether you're willing to accept it.
 
 If you want to implement something like this yourself, this repo contains a
 [tool to help you do it](cbdr.md).
+
+[confidence interval]: https://en.wikipedia.org/wiki/Welch%27s_t-test
 
 ## Common bad practice
 
