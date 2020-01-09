@@ -43,20 +43,19 @@ pub fn render(
         writeln!(out, "\n{} vs {}:\n", from, to)?;
         writeln!(
             out,
-            "\t{:^20}\t{:^20}\t{:^20}\t{:^20}\t ratio",
+            "\t{:^20}\t{:^20}\t{:^20}\t{:^20}",
             "95% CI", "99% CI", "99.9% CI", "99.99% CI",
         )?;
         for (idx, ci) in diff.0.iter().enumerate() {
             let metric = Metric(idx);
             writeln!(
                 out,
-                "    {}\t{}\t{}\t{}\t{}\t{:.3}x",
+                "    {}\t{}\t{}\t{}\t{}",
                 metric,
                 PrettyCI(*ci, 0.95),
                 PrettyCI(*ci, 0.99),
                 PrettyCI(*ci, 0.999),
                 PrettyCI(*ci, 0.9999),
-                ci.stats_y.mean / ci.stats_x.mean,
             )?;
         }
     }
