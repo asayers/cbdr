@@ -21,16 +21,23 @@ pub struct Options {
     pub labels: Vec<String>,
 }
 impl Options {
-    pub fn pairs(&self) -> Vec<(Bench, Bench)> {
+    pub fn labels_in_order<'a>(&'a self) -> Box<dyn Iterator<Item = Bench> + 'a> {
+        if self.labels.is_empty() {
+            Box::new(all_benches())
+        } else {
+            Box::new(self.labels.iter().map(|x| Bench::from(x.as_str())))
+        }
+    }
+    pub fn pairs<'a>(&'a self) -> Box<dyn Iterator<Item = (Bench, Bench)> + 'a> {
         if let Some(base) = &self.base {
             let base = Bench::from(base.as_str());
-            self.labels
-                .iter()
-                .map(|x| (base, Bench::from(x.as_str())))
-                .collect::<Vec<_>>()
+            Box::new(
+                self.labels_in_order()
+                    .filter(move |x| *x != base)
+                    .map(move |x| (base, x)),
+            )
         } else {
-            let iter = self.labels.iter().map(|x| Bench::from(x.as_str()));
-            iter.clone().zip(iter.skip(1)).collect()
+            Box::new(self.labels_in_order().zip(self.labels_in_order().skip(1)))
         }
     }
 }
@@ -45,14 +52,6 @@ pub fn analyze(opts: Options) -> Result<()> {
     let mut measurements = summarize::Measurements::default();
 
     let mut printer = Printer::new()?;
-    let explicit_pairs = opts.pairs();
-    let pairs = || -> Box<dyn Iterator<Item = (Bench, Bench)>> {
-        if explicit_pairs.is_empty() {
-            Box::new(all_benches().zip(all_benches().skip(1)))
-        } else {
-            Box::new(explicit_pairs.iter().copied())
-        }
-    };
 
     let mut last_print = Instant::now();
     for row in rdr.into_records() {
@@ -64,7 +63,7 @@ pub fn analyze(opts: Options) -> Result<()> {
 
         if last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();
-            let diffs = pairs().map(|(from, to)| {
+            let diffs = opts.pairs().map(|(from, to)| {
                 let diff = measurements.diff(from, to);
                 (from, to, diff)
             });
@@ -89,7 +88,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     }
 
     // Print the last set of diffs
-    let diffs = pairs().map(|(from, to)| {
+    let diffs = opts.pairs().map(|(from, to)| {
         let diff = measurements.diff(from, to);
         (from, to, diff)
     });
@@ -97,7 +96,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     printer.print(out)?;
 
     if opts.deny_positive {
-        for (from, to) in pairs() {
+        for (from, to) in opts.pairs() {
             for (idx, ci) in measurements.diff(from, to).0.into_iter().enumerate() {
                 let metric = Metric(idx);
                 if ci.delta() > ci.ci(0.95) {
