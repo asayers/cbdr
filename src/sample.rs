@@ -34,7 +34,7 @@ impl Options {
                     .map(|x| Benchmark::Script(bench.clone(), vec![x])),
             );
         } else {
-            benches.extend(self.targets.into_iter().map(|x| Benchmark::Prog(x)));
+            benches.extend(self.targets.into_iter().map(Benchmark::Prog));
         }
         benches
     }
@@ -46,15 +46,13 @@ pub fn sample(opts: Options) -> Result<()> {
     let mut stdout = CsvWriter::new(std::io::stdout(), stats.iter())?;
     // Run the benches in-order once, so `cbdr analyze` knows the correct order
     for bench in &benches {
-        let x = run_bench(bench).map(|x| (bench.clone(), x));
-        let (bench, values) = x?;
+        let values = run_bench(bench)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
     loop {
         let idx = rand::random::<usize>() % benches.len();
         let bench = &benches[idx];
-        let x = run_bench(bench).map(|x| (bench.clone(), x));
-        let (bench, values) = x?;
+        let values = run_bench(bench)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
 }
@@ -65,7 +63,7 @@ struct CsvWriter<T> {
 }
 impl<T: Write> CsvWriter<T> {
     fn new<'a>(mut out: T, stats: impl Iterator<Item = &'a String>) -> Result<CsvWriter<T>> {
-        out.write_all(b"target")?;
+        out.write_all(b"benchmark")?;
         let stats = stats
             .map(|x| {
                 write!(out, ",{}", x)?;
@@ -75,8 +73,8 @@ impl<T: Write> CsvWriter<T> {
         out.write_all(b"\n")?;
         Ok(CsvWriter { out, stats })
     }
-    fn write_csv(&mut self, target: &String, values: &BTreeMap<String, f64>) -> Result<()> {
-        write!(self.out, "{}", target)?;
+    fn write_csv(&mut self, bench: &str, values: &BTreeMap<String, f64>) -> Result<()> {
+        write!(self.out, "{}", bench)?;
         for stat in &self.stats {
             write!(self.out, ",{}", values.get(stat).unwrap_or(&std::f64::NAN))?;
         }
@@ -156,7 +154,7 @@ fn time_in_shell_posix(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
         tms_cutime: 0,
         tms_cstime: 0,
     };
-    let mut tms_after = tms_before.clone();
+    let mut tms_after = tms_before;
 
     unsafe { libc::times(&mut tms_before as *mut libc::tms) };
     let ts = Instant::now();

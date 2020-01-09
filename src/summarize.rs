@@ -23,11 +23,7 @@ impl Measurements {
         self.msmts.get(idx)
     }
     pub fn update(&mut self, bench: Bench, new_measurements: impl Iterator<Item = f64>) {
-        for (stats, msmt) in self
-            .bench_stats_mut(bench)
-            .into_iter()
-            .zip(new_measurements)
-        {
+        for (stats, msmt) in self.bench_stats_mut(bench).iter_mut().zip(new_measurements) {
             stats.0 += 1;
             stats.1.update(msmt);
         }
@@ -45,7 +41,7 @@ impl Measurements {
     }
     pub fn iter_label(&self, bench: Bench) -> impl Iterator<Item = (Metric, &Statistics)> {
         self.bench_stats(bench)
-            .into_iter()
+            .iter()
             .enumerate()
             .map(|(idx, stats)| (Metric(idx), stats))
     }
@@ -53,8 +49,8 @@ impl Measurements {
     pub fn diff(&self, from: Bench, to: Bench) -> Diff {
         Diff(
             self.bench_stats(from)
-                .into_iter()
-                .zip(self.bench_stats(to).into_iter())
+                .iter()
+                .zip(self.bench_stats(to).iter())
                 .map(|(from, to)| DiffCI {
                     stats_x: from.into(),
                     stats_y: to.into(),
