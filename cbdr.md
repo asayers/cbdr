@@ -6,26 +6,27 @@ This repo contains a suite of tools called `cbdr`.
 benchmarks it.  The output is CSV-formatted.
 
 ```
-cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | head | column -s, -t
+$ cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | head | column -s, -t
 Warming up md5sum foo.json...
 Warming up sha1sum foo.json...
 Warming up sha256sum foo.json...
-target              sys_time  user_time  wall_time
-md5sum foo.json     0.01      0.03       0.026581489
-sha256sum foo.json  0         0.07       0.072450366
-sha1sum foo.json    0         0.04       0.041179884
-md5sum foo.json     0         0.02       0.025899522
-md5sum foo.json     0.01      0.02       0.026360146
-sha256sum foo.json  0         0.07       0.071064774
-md5sum foo.json     0         0.02       0.026017469
-sha1sum foo.json    0         0.03       0.031259894
-md5sum foo.json     0.01      0.03       0.027783781
+
+target              sys time  user time  wall time
+sha1sum foo.json    0.01      0.04       0.038843459
+md5sum foo.json     0         0.03       0.035293018
+md5sum foo.json     0         0.03       0.036419416
+md5sum foo.json     0.01      0.03       0.031535277
+sha256sum foo.json  0         0.1        0.099074689
+md5sum foo.json     0         0.02       0.031327095
+md5sum foo.json     0         0.03       0.031426344
+sha256sum foo.json  0         0.09       0.087450079
+md5sum foo.json     0         0.03       0.030244706
 ```
 
 `cbdr analyze` summarizes the differences between the benchmarked programs.
 
 ```
-cbdr analyze <results.csv
+$ cbdr analyze <results.csv
 benchmark           samples  sys time  user time  wall time
 md5sum foo.json     7238     0.003     0.025      0.028
 sha1sum foo.json    7057     0.003     0.031      0.034

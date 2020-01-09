@@ -15,46 +15,30 @@ property you _really_ care about is the mean of that distribution; and the
 thing you _actually really_ care about is how much that mean changes when
 you apply a particular patch.
 
-## tl;dr: The Method
+## An illustative example
 
-You have a decent macro-benchmark.  You have two commits you want to compare
-(presumably: the merge-base vs. the tip of your branch).  You've decided
-how small the smallest regression you care about is (call this `T`).
+The situation:
 
-1. Pick a commit randomly and benchmark it; add the results to your total
-   set of measurements.
-2. Compute the 95% confidence interval for the diffence of the means.
-3. Is the width of the confidence interval still bigger than `T`?  If so,
-   go back to step 1.
-4. Does the confidence interval contain zero?  If not, you may have a
-   regression.
+* You've got a feature branch you want to merge into master.
+* You have a decent macro-benchmark called `bench.sh`.  It takes about a second to run.
+* You've decided that you don't care about regressions smaller than 5%.
+* You've decided that you're OK with getting false-positives 0.1% of the time.
 
-See [A Benchmarker's Journey](journey.md) for a story which explains how
-one might arrive at this method.
+The method:
 
-There's some stuff in this repo which might help you implement a scheme like
-this yourself; see [here](cbdr.md) for an overview.
+1. Check out the feature branch in one worktree and the merge-base in another.
+2. Randomly pick one of your two checkouts and run `bench.sh`, measuring the
+   time it takes to run.  Append the result to that checkout's "measurements"
+   file.
+3. Compute the 99.9% confidence interval for the diffence of the means.
+4. Is the width of the confidence interval still bigger than 5%?  If "yes",
+   go back to step 2.
+5. The confience interval is now tight enough to spot a 5% regression. Is
+   the lower bound less than zero?  If "yes", you're good to merge!
+6. Throw away the measurements you took - you don't want to re-use them.
 
-## Multiple benchmarks
-
-If your benchmark produces multiple values (eg. wall time and max RSS),
-then you want to check that none of them have regressed.  This multiplies
-your chance of a false positive by the number of values involved.  You can
-counteract this by multiplying the widths of your CIs by the same number.
-
-## Stats
-
-We're comparing the means of two unknown distributions.  Both distributions
-are roughly normal, but their means and variances may be different.  (This is
-typically the case when benchmarking; of course, if your benchmark calls
-`sleep(random_log_normal())` then this isn't a valid assumption.  Don't do
-that.)  The appropriate test in this case is Student's t-test.
-
-We don't only care about whether a regression has occurred, however: we also
-care about how big the regression is.  Therefore, a confidence interval is
-going to be more useful than a p-value.  For this you'll need the inverse CDF
-of the t-distribution.  There are various implementations around, including
-one in this repo.
+If you want to implement something like this yourself, here are some [tools
+to help you do it](cbdr.md).
 
 ## Common bad practice
 
@@ -109,7 +93,25 @@ Quoting the [Biostats handbook]:
 
 [Biostats handbook]: http://www.biostathandbook.com/confidence.html
 
-### Beware "±"
+### Using the wrong statistical test
+
+The run-time of your benchmark is an unknown distrubution.  In my experience,
+if you write a reasonable macro-benchmark, the distribution will be fairly
+close to normal.  Of course, it may not be the case: if your benchmark calls
+`sleep(random_log_normal())` then its runtime will be log-normally distributed.
+Do a normality test if you're concerned.
+
+So: we have two distributions, assumed to be normal, but with different
+means and variances.  We want to test whether the means are different.
+The appropriate test in this case is Student's t-test.
+
+However, we don't just want to know _whether_ a regression has occurred:
+we want to know how big it is too.  A confidence interval is going to be
+more useful than a p-value.  For this you'll need the inverse CDF of the
+t-distribution.  There are various implementations around, including one in
+this repo.
+
+#### Beware "±"
 
 Just because a program prints its output with a "± x" doesn't mean it's
 computing a confidence interval.  "±" could denote a standard deviatioon,
@@ -118,3 +120,10 @@ standardized meaning.  Having the variance of the measurements is well and
 good, but it doesn't help you decide whether the result is significant.
 If the docs don't specify the meaning, you could try grepping the source
 for mention of an "inverse CDF".
+
+### Comparing multiple values and failing if any one of them regresses
+
+If your benchmark produces multiple values (eg. wall time and max RSS), then
+you probably want to check that none of them have regressed.  This multiplies
+your chance of a false positive by the number of values involved.  You can
+counteract this by multiplying the widths of your CIs by the same number.
