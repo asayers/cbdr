@@ -1,52 +1,70 @@
 use crate::diff::*;
 use crate::label::*;
 use confidence::*;
-use std::collections::BTreeMap;
 
-#[derive(Default)]
 pub struct Measurements {
-    pub stats: BTreeMap<(Bench, Metric), Statistics>,
+    msmts: Vec<Statistics>,
+    stride: usize,
 }
 
 impl Measurements {
+    pub fn new(all_metrics: &[Metric]) -> Measurements {
+        Measurements {
+            msmts: vec![],
+            stride: all_metrics.len(),
+        }
+    }
+    pub fn get(&self, bench: Bench, metric: Metric) -> Option<&Statistics> {
+        assert!(metric.0 < self.stride);
+        let idx = bench.0 * self.stride + metric.0;
+        self.msmts.get(idx)
+    }
+    pub fn get_mut(&mut self, bench: Bench, metric: Metric) -> &mut Statistics {
+        assert!(metric.0 < self.stride);
+        let idx = bench.0 * self.stride + metric.0;
+        if idx >= self.msmts.len() {
+            self.msmts.resize_with(idx + 1, Statistics::default);
+        }
+        self.msmts.get_mut(idx).unwrap()
+    }
     pub fn update(&mut self, label: Bench, values: impl Iterator<Item = (Metric, f64)>) {
         for (stat, value) in values {
-            let Statistics(count, x) = self.stats.entry((label, stat)).or_default();
+            let Statistics(count, x) = self.get_mut(label, stat);
             *count += 1;
             x.update(value);
         }
     }
-    pub fn iter_label(&self, label: Bench) -> impl Iterator<Item = (Metric, &Statistics)> {
-        self.stats
-            .range((label, Metric::MIN)..=(label, Metric::MAX))
-            .map(|((_, metric), stats)| (*metric, stats))
+    pub fn bench_stats(&self, bench: Bench) -> &[Statistics] {
+        &self.msmts[bench.0 * self.stride..(bench.0 + 1) * self.stride]
+    }
+    pub fn iter_label(&self, bench: Bench) -> impl Iterator<Item = (Metric, &Statistics)> {
+        self.bench_stats(bench)
+            .into_iter()
+            .enumerate()
+            .map(|(idx, stats)| (Metric(idx), stats))
     }
 
     pub fn diff(&self, from: Bench, to: Bench) -> Diff {
-        let xs = self.iter_label(from);
-        let ys = self.iter_label(to);
-        Diff::new(xs, ys)
+        Diff(
+            self.bench_stats(from)
+                .into_iter()
+                .zip(self.bench_stats(to).into_iter())
+                .map(|(from, to)| DiffCI {
+                    stats_x: from.into(),
+                    stats_y: to.into(),
+                })
+                .collect::<Vec<_>>(),
+        )
     }
-
     pub fn labels(&self) -> impl Iterator<Item = Bench> + Clone {
-        let mut scores: Vec<(Bench, f64)> = vec![];
-        let mut cur_score = 0.;
-        let mut cur_label = None;
-        for ((label, _), stats) in &self.stats {
-            if Some(label) != cur_label {
-                if let Some(l) = cur_label {
-                    scores.push((l.clone(), cur_score));
-                }
-                cur_label = Some(label);
-                cur_score = 0.;
-            }
-            cur_score += stats.1.mean;
-        }
-        if let Some(l) = cur_label {
-            scores.push((l.clone(), cur_score));
-        }
+        let mut scores: Vec<(usize, f64)> = self
+            .msmts
+            .chunks(self.stride)
+            .map(|xs| xs.into_iter().map(|stats| stats.1.mean).sum::<f64>())
+            .enumerate()
+            .collect();
         scores.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
-        scores.into_iter().map(|x| x.0)
+        scores.into_iter().map(|x| Bench(x.0))
     }
 
     pub fn guess_pairs(&self) -> Vec<(Bench, Bench)> {

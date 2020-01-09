@@ -32,7 +32,7 @@ fn idx_to_color(idx: usize) -> Color {
 }
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
-pub struct Bench(usize);
+pub struct Bench(pub usize);
 impl From<&str> for Bench {
     fn from(x: &str) -> Bench {
         let mut cache = BENCH_CACHE.lock().unwrap();
@@ -49,11 +49,7 @@ impl fmt::Display for Bench {
 }
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
-pub struct Metric(usize);
-impl Metric {
-    pub const MIN: Metric = Metric(0);
-    pub const MAX: Metric = Metric(std::usize::MAX);
-}
+pub struct Metric(pub usize);
 impl From<&str> for Metric {
     fn from(x: &str) -> Metric {
         let mut cache = METRIC_CACHE.lock().unwrap();

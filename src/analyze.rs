@@ -37,7 +37,6 @@ impl Options {
 // summarize -> rate-limit -> diff -> pretty print
 pub fn analyze(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
-    let mut measurements = summarize::Measurements::default();
     let all_metrics = rdr
         .headers()
         .unwrap()
@@ -45,8 +44,9 @@ pub fn analyze(opts: Options) -> Result<()> {
         .skip(1)
         .map(|x| Metric::from(x))
         .collect::<Vec<_>>();
+    let mut measurements = summarize::Measurements::new(&all_metrics);
 
-    let mut pretty = pretty::State::new()?;
+    let mut printer = Printer::new()?;
     let explicit_pairs = opts.pairs();
     macro_rules! print {
         () => {{
@@ -60,7 +60,8 @@ pub fn analyze(opts: Options) -> Result<()> {
                 let diff = measurements.diff(from.clone(), to.clone());
                 diffs.push((from, to, diff));
             }
-            pretty.print(&all_metrics, &measurements, &diffs)?;
+            let out = pretty::render(&all_metrics, &measurements, &diffs)?;
+            printer.print(out)?;
             diffs
         }};
     }
@@ -99,15 +100,38 @@ pub fn analyze(opts: Options) -> Result<()> {
 
     if opts.deny_positive {
         for (from, to, diff) in diffs {
-            for (stat_name, ci) in diff.0 {
-                if let Some(ci) = ci {
-                    if ci.delta() > ci.ci(0.95) {
-                        bail!("{}..{}: {} increased!", from, to, stat_name);
-                    }
+            for (idx, ci) in diff.0.into_iter().enumerate() {
+                let metric = Metric(idx);
+                if ci.delta() > ci.ci(0.95) {
+                    bail!("{}..{}: {} increased!", from, to, metric);
                 }
             }
         }
     }
 
     Ok(())
+}
+
+pub struct Printer {
+    stdout: Box<term::StdoutTerminal>,
+    /// The number of lines output in the previous iteration
+    n: usize,
+}
+impl Printer {
+    pub fn new() -> Result<Printer> {
+        Ok(Printer {
+            stdout: term::stdout().ok_or_else(|| anyhow!("Couldn't open stdout as a terminal"))?,
+            n: 0,
+        })
+    }
+    // Clear the previous output and replace it with the new output
+    pub fn print(&mut self, out: Vec<u8>) -> Result<()> {
+        for _ in 0..self.n {
+            self.stdout.cursor_up()?;
+            self.stdout.delete_line()?;
+        }
+        self.stdout.write_all(&out)?;
+        self.n = out.into_iter().filter(|c| *c == b'\n').count();
+        Ok(())
+    }
 }
