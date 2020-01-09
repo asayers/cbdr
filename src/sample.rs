@@ -86,6 +86,7 @@ fn warm_up(benches: &[Benchmark]) -> Result<BTreeSet<String>> {
         let results = run_bench(bench)?;
         stats.extend(results.keys().cloned());
     }
+    eprintln!();
     Ok(stats)
 }
 

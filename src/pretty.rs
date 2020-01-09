@@ -42,10 +42,23 @@ pub fn render(
     // Print the diff tables
     for (from, to, diff) in diffs {
         writeln!(out, "\n{} vs {}:\n", from, to)?;
-        write_key(&mut out)?;
+        writeln!(
+            out,
+            "\t{:^20}\t{:^20}\t{:^20}\t{:^20}\t ratio",
+            "95% CI", "99% CI", "99.9% CI", "99.99% CI",
+        )?;
         for (idx, ci) in diff.0.iter().enumerate() {
             let metric = Metric(idx);
-            writeln!(out, "    {}\t{}", metric, PrettyCI(*ci))?;
+            writeln!(
+                out,
+                "    {}\t{}\t{}\t{}\t{}\t{:.3}x",
+                metric,
+                PrettyCI(*ci, 0.95),
+                PrettyCI(*ci, 0.99),
+                PrettyCI(*ci, 0.999),
+                PrettyCI(*ci, 0.9999),
+                ci.stats_y.mean / ci.stats_x.mean,
+            )?;
         }
     }
 
@@ -53,38 +66,20 @@ pub fn render(
     Ok(out)
 }
 
-fn write_key(mut out: impl Write) -> Result<()> {
-    writeln!(out, "\t        95% CI\t        99% CI\t ratio",)?;
-    Ok(())
-}
+struct PrettyCI(DiffCI, f64);
 
-struct PrettyCI(DiffCI);
-
-macro_rules! highlight_if {
-    ($cond: expr) => {
-        if $cond {
+impl fmt::Display for PrettyCI {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let delta = self.0.stats_y.mean - self.0.stats_x.mean;
+        let width = self.0.ci(self.1);
+        let left = format!("{:+.1}", 100. * (delta - width) / self.0.stats_x.mean);
+        let right = format!("{:+.1}", 100. * (delta + width) / self.0.stats_x.mean);
+        let style = if delta > width || delta < -width {
             Style::new().bold()
         } else {
             Style::new().dimmed()
-        }
-    };
-}
-impl fmt::Display for PrettyCI {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ci = self.0;
-        let delta = ci.stats_y.mean - ci.stats_x.mean;
-        let l95 = format!("{:+.1}", 100. * (delta - ci.ci(0.95)) / ci.stats_x.mean);
-        let r95 = format!("{:+.1}", 100. * (delta + ci.ci(0.95)) / ci.stats_x.mean);
-        let l99 = format!("{:+.1}", 100. * (delta - ci.ci(0.99)) / ci.stats_x.mean);
-        let r99 = format!("{:+.1}", 100. * (delta + ci.ci(0.99)) / ci.stats_x.mean);
-        let s95 = highlight_if!(delta > ci.ci(0.95) || delta < -ci.ci(0.95));
-        let s99 = highlight_if!(delta > ci.ci(0.99) || delta < -ci.ci(0.99));
-        write!(
-            f,
-            "{}\t{}\t{:.3}x",
-            s95.paint(format!("[{:>6}% .. {:>6}%]", l95, r95)),
-            s99.paint(format!("[{:>6}% .. {:>6}%]", l99, r99)),
-            ci.stats_y.mean / ci.stats_x.mean,
-        )
+        };
+        let s = format!("[{:>6}% .. {:>6}%]", left, right);
+        write!(f, "{}", style.paint(s))
     }
 }
