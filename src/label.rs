@@ -1,10 +1,9 @@
 use ansi_term::{Color, Style};
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use std::fmt;
 use std::sync::Mutex;
 
 static BENCH_CACHE: Lazy<Mutex<LabelCache>> = Lazy::new(|| Mutex::new(LabelCache::default()));
-static METRIC_CACHE: Lazy<Mutex<LabelCache>> = Lazy::new(|| Mutex::new(LabelCache::default()));
 
 #[derive(Default)]
 struct LabelCache(Vec<String>);
@@ -48,19 +47,27 @@ impl fmt::Display for Bench {
     }
 }
 
+pub fn all_benches() -> impl Iterator<Item = Bench> {
+    (0..BENCH_CACHE.lock().unwrap().0.len()).map(Bench)
+}
+
+static METRIC_CACHE: OnceCell<Vec<String>> = OnceCell::new();
+
+pub fn init_metrics(metrics: Vec<String>) {
+    METRIC_CACHE.set(metrics).unwrap()
+}
+
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
 pub struct Metric(pub usize);
-impl From<&str> for Metric {
-    fn from(x: &str) -> Metric {
-        let mut cache = METRIC_CACHE.lock().unwrap();
-        Metric(cache.insert(x))
-    }
-}
 impl fmt::Display for Metric {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let cache = METRIC_CACHE.lock().unwrap();
-        f.write_str(&cache.0[self.0])
+        let cache = METRIC_CACHE.get().unwrap();
+        f.write_str(&cache[self.0])
     }
+}
+
+pub fn all_metrics() -> impl Iterator<Item = Metric> {
+    (0..METRIC_CACHE.get().unwrap().len()).map(Metric)
 }
 
 #[cfg(test)]

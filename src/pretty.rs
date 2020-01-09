@@ -7,31 +7,30 @@ use std::fmt;
 use std::io::Write;
 
 pub fn render(
-    all_metrics: &[Metric],
     measurements: &Measurements,
-    diffs: &[(Bench, Bench, Diff)],
+    diffs: impl Iterator<Item = (Bench, Bench, Diff)>,
 ) -> Result<Vec<u8>> {
     let mut out = tabwriter::TabWriter::new(Vec::<u8>::new());
 
     // Print the summary table
     write!(out, "benchmark\tsamples")?;
-    for metric in all_metrics {
+    for metric in all_metrics() {
         write!(out, "\t{}", metric)?;
     }
     writeln!(out)?;
-    for label in measurements.labels() {
+    for bench in all_benches() {
         let count = measurements
-            .iter_label(label)
+            .iter_label(bench)
             .map(|x| (x.1).0)
             .next()
             .unwrap_or(0);
-        write!(out, "{}\t{}", label, count)?;
-        for metric in all_metrics {
+        write!(out, "{}\t{}", bench, count)?;
+        for metric in all_metrics() {
             write!(
                 out,
                 "\t{:.3}",
                 measurements
-                    .get(label, *metric)
+                    .get(bench, metric)
                     .map(|stats| stats.1.mean)
                     .unwrap_or(std::f64::NAN)
             )?;

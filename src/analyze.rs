@@ -2,6 +2,7 @@ use crate::label::*;
 use crate::pretty;
 use crate::summarize;
 use anyhow::*;
+use log::*;
 use std::time::*;
 use structopt::*;
 
@@ -26,7 +27,7 @@ impl Options {
             self.labels
                 .iter()
                 .map(|x| (base, Bench::from(x.as_str())))
-                .collect()
+                .collect::<Vec<_>>()
         } else {
             let iter = self.labels.iter().map(|x| Bench::from(x.as_str()));
             iter.clone().zip(iter.skip(1)).collect()
@@ -37,46 +38,38 @@ impl Options {
 // summarize -> rate-limit -> diff -> pretty print
 pub fn analyze(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
-    let all_metrics = rdr
-        .headers()
-        .unwrap()
-        .into_iter()
-        .skip(1)
-        .map(|x| Metric::from(x))
-        .collect::<Vec<_>>();
-    let mut measurements = summarize::Measurements::new(&all_metrics);
+    let mut headers = rdr.headers().unwrap().into_iter();
+    let first = headers.next().unwrap();
+    info!("Assuming \"{}\" column is the benchmark name", first);
+    init_metrics(headers.map(|x| x.to_string()).collect());
+    let mut measurements = summarize::Measurements::default();
 
     let mut printer = Printer::new()?;
     let explicit_pairs = opts.pairs();
-    macro_rules! print {
-        () => {{
-            let pairs = if explicit_pairs.is_empty() {
-                measurements.guess_pairs()
-            } else {
-                explicit_pairs.clone()
-            };
-            let mut diffs = vec![];
-            for (from, to) in pairs {
-                let diff = measurements.diff(from.clone(), to.clone());
-                diffs.push((from, to, diff));
-            }
-            let out = pretty::render(&all_metrics, &measurements, &diffs)?;
-            printer.print(out)?;
-            diffs
-        }};
-    }
+    let pairs = || -> Box<dyn Iterator<Item = (Bench, Bench)>> {
+        if explicit_pairs.is_empty() {
+            Box::new(all_benches().zip(all_benches().skip(1)))
+        } else {
+            Box::new(explicit_pairs.iter().copied())
+        }
+    };
 
     let mut last_print = Instant::now();
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
-        let label = Bench::from(row.next().unwrap());
+        let bench = Bench::from(row.next().unwrap());
         let values = row.map(|x| x.parse().unwrap());
-        measurements.update(label, all_metrics.iter().cloned().zip(values));
+        measurements.update(bench, values);
 
         if last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();
-            print!();
+            let diffs = pairs().map(|(from, to)| {
+                let diff = measurements.diff(from, to);
+                (from, to, diff)
+            });
+            let out = pretty::render(&measurements, diffs)?;
+            printer.print(out)?;
 
             // // Check to see if we're finished
             // if let Some(threshold) = opts.threshold {
@@ -96,11 +89,16 @@ pub fn analyze(opts: Options) -> Result<()> {
     }
 
     // Print the last set of diffs
-    let diffs = print!();
+    let diffs = pairs().map(|(from, to)| {
+        let diff = measurements.diff(from, to);
+        (from, to, diff)
+    });
+    let out = pretty::render(&measurements, diffs)?;
+    printer.print(out)?;
 
     if opts.deny_positive {
-        for (from, to, diff) in diffs {
-            for (idx, ci) in diff.0.into_iter().enumerate() {
+        for (from, to) in pairs() {
+            for (idx, ci) in measurements.diff(from, to).0.into_iter().enumerate() {
                 let metric = Metric(idx);
                 if ci.delta() > ci.ci(0.95) {
                     bail!("{}..{}: {} increased!", from, to, metric);

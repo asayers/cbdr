@@ -44,6 +44,12 @@ pub fn sample(opts: Options) -> Result<()> {
     let benches = opts.benchmarks();
     let stats = warm_up(&benches)?;
     let mut stdout = CsvWriter::new(std::io::stdout(), stats.iter())?;
+    // Run the benches in-order once, so `cbdr analyze` knows the correct order
+    for bench in &benches {
+        let x = run_bench(bench).map(|x| (bench.clone(), x));
+        let (bench, values) = x?;
+        stdout.write_csv(&bench.to_string(), &values)?;
+    }
     loop {
         let idx = rand::random::<usize>() % benches.len();
         let bench = &benches[idx];
