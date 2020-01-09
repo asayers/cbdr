@@ -1,7 +1,9 @@
 # CBDR
 
-This repo contains a suite of tools called `cbdr`.  `cbdr sample` repeatedly
-selects a program at random from a list and benchmarks it.
+This repo contains a suite of tools called `cbdr`.
+
+`cbdr sample` repeatedly selects a program at random from a list and
+benchmarks it.  The output is CSV-formatted.
 
 ```
 cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | head | column -s, -t
@@ -20,39 +22,47 @@ sha1sum foo.json    0         0.03       0.031259894
 md5sum foo.json     0.01      0.03       0.027783781
 ```
 
-Pipe the output into `cbdr analyze` to see a (live-updating) summary of the
-differences between the benchmarked programs.
+`cbdr analyze` summarizes the differences between the benchmarked programs.
 
 ```
-cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | cbdr analyze
-Warming up md5sum foo.json...
-Warming up sha1sum foo.json...
-Warming up sha256sum foo.json...
+cbdr analyze <results.csv
+benchmark           samples  sys time  user time  wall time
+md5sum foo.json     7238     0.003     0.025      0.028
+sha1sum foo.json    7057     0.003     0.031      0.034
+sha256sum foo.json  7200     0.003     0.074      0.077
 
-md5sum foo.json..sha1sum foo.json:
-               -99%       -95%       Δ         +95%      +99%      before  after  ratio
-    sys_time   -155.477%  -124.892%  -33.908%  +57.076%  +87.660%  0.003   0.002  0.661
-    user_time  +5.935%    +9.853%    +21.609%  +33.366%  +37.283%  0.026   0.032  1.216
-    wall_time  +13.302%   +14.955%   +19.846%  +24.737%  +26.390%  0.029   0.034  1.198
+md5sum foo.json vs sha1sum foo.json:
 
-sha1sum foo.json..sha256sum foo.json:
-               -99%       -95%       Δ          +95%       +99%       before  after  ratio
-    sys_time   -103.011%  -57.591%   +78.462%   +214.514%  +259.934%  0.002   0.003  1.785
-    user_time  +124.173%  +127.527%  +137.625%  +147.724%  +151.078%  0.032   0.075  2.376
-    wall_time  +120.274%  +121.936%  +126.942%  +131.948%  +133.610%  0.034   0.078  2.269
+                      95% CI                99% CI               99.9% CI             99.99% CI         ratio
+    sys time   [  -7.4% ..   +3.5%]  [  -9.1% ..   +5.2%]  [ -11.1% ..   +7.2%]  [ -12.7% ..   +8.9%]  0.981x
+    user time  [ +24.6% ..  +26.2%]  [ +24.4% ..  +26.5%]  [ +24.1% ..  +26.8%]  [ +23.8% ..  +27.0%]  1.254x
+    wall time  [ +21.9% ..  +22.9%]  [ +21.8% ..  +23.0%]  [ +21.6% ..  +23.2%]  [ +21.5% ..  +23.3%]  1.224x
+
+sha1sum foo.json vs sha256sum foo.json:
+
+                      95% CI                99% CI               99.9% CI             99.99% CI         ratio
+    sys time   [  -0.2% ..  +11.0%]  [  -2.0% ..  +12.8%]  [  -4.1% ..  +14.8%]  [  -5.8% ..  +16.6%]  1.054x
+    user time  [+136.7% .. +138.3%]  [+136.4% .. +138.6%]  [+136.1% .. +138.9%]  [+135.9% .. +139.1%]  2.375x
+    wall time  [+125.5% .. +127.0%]  [+125.3% .. +127.2%]  [+125.0% .. +127.4%]  [+124.8% .. +127.7%]  2.262x
 ```
+
+You can even pipe the output of `cbdr sample` into `cbdr analyze` to see
+the confidence intervals change as they're updated by new data:
+
+<img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
 
 ## Interpreting the results
 
-Let's look at the table comparing mdf5 to sha1.  Looking at the wall-clock
-time, it indeed looks to be about 20% slower.  That said, you should avoid
-the temptation reduce the results to a single number.  The statistically
-responsible way to report this benchmark to your colleagues would be like this:
+Let's look at the table comparing md5 to sha1, and choose a p-value of 99%.
+Looking at the wall-clock time, it indeed looks to be about 22% slower.
+That said, you should avoid the temptation reduce the results to a single
+number.  The statistically responsible way to report this benchmark to your
+colleagues would be like this:
 
-> sha1sum was 15-25% slower than md5sum by wall-clock (p=95%)
+> sha1sum was 21.8-23% slower than md5sum by wall-clock (p=99%)
 
 By contrast, looking at the system time, we see that the difference is between
--125% and +57%.  Because the confidence interval contains 0%, we don't have
+-9.1% and +5.2%.  Because the confidence interval contains 0%, we don't have
 enough evidence to say that the time spent in the kernel is any different.
 
-> The difference in system time was within noise (p=95%)
+> The difference in system time was within noise (p=99%)
