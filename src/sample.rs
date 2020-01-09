@@ -115,10 +115,11 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
                 .arg(x)
                 .stdout(Stdio::null())
                 .stderr(Stdio::null());
-            #[cfg(unix)]
-            let ret = time_in_shell_posix(cmd)?;
-            #[cfg(not(unix))]
-            let ret = time_in_shell_fallback(cmd)?;
+            let mut ret = BTreeMap::default();
+            let timings = time_cmd(cmd)?;
+            ret.insert("wall time".into(), timings.wall_time.as_secs_f64());
+            ret.insert("user time".into(), timings.user_time);
+            ret.insert("sys time".into(), timings.sys_time);
             Ok(ret)
         }
         Benchmark::Script(script, args) => {
@@ -134,19 +135,36 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
     }
 }
 
-#[allow(unused)]
-fn time_in_shell_fallback(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
-    let ts = Instant::now();
-    cmd.spawn()?.wait()?;
-    let d = ts.elapsed();
+#[derive(Clone, Copy, PartialEq, Debug)]
+struct Timings {
+    wall_time: Duration,
+    user_time: f64,
+    sys_time: f64,
+}
 
-    let mut ret = BTreeMap::default();
-    ret.insert("wall_time".into(), d.as_secs_f64());
+/// The user must ensure that no other child processes are running.
+fn time_cmd(cmd: Command) -> Result<Timings> {
+    #[cfg(unix)]
+    let ret = time_cmd_posix(cmd)?;
+    #[cfg(not(unix))]
+    let ret = time_cmd_fallback(cmd)?;
     Ok(ret)
 }
 
+#[allow(unused)]
+fn time_cmd_fallback(mut cmd: Command) -> Result<Timings> {
+    let ts = Instant::now();
+    cmd.spawn()?.wait()?;
+    let d = ts.elapsed();
+    Ok(Timings {
+        wall_time: d,
+        user_time: 0.,
+        sys_time: 0.,
+    })
+}
+
 #[cfg(unix)]
-fn time_in_shell_posix(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
+fn time_cmd_posix(mut cmd: Command) -> Result<Timings> {
     // times(2) and sysconf(2) are both POSIX
     let mut tms_before = libc::tms {
         tms_utime: 0,
@@ -166,9 +184,9 @@ fn time_in_shell_posix(mut cmd: Command) -> Result<BTreeMap<String, f64>> {
     let utime = (tms_after.tms_cutime - tms_before.tms_cutime) as f64 / ticks_per_sec;
     let stime = (tms_after.tms_cstime - tms_before.tms_cstime) as f64 / ticks_per_sec;
 
-    let mut ret = BTreeMap::default();
-    ret.insert("wall time".into(), d.as_secs_f64());
-    ret.insert("user time".into(), utime);
-    ret.insert("sys time".into(), stime);
-    Ok(ret)
+    Ok(Timings {
+        wall_time: d,
+        user_time: utime,
+        sys_time: stime,
+    })
 }
