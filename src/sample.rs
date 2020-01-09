@@ -109,8 +109,8 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
             let mut cmd = Command::new("/bin/sh");
             cmd.arg("-c")
                 .arg(x)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
             #[cfg(unix)]
             let ret = time_in_shell_posix(cmd)?;
             #[cfg(not(unix))]
