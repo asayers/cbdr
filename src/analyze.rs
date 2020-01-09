@@ -15,20 +15,20 @@ pub struct Options {
     /// A "base" label.  If specified, all labels will be compared to this.
     #[structopt(long)]
     pub base: Option<String>,
-    /// Labels to compare.  If "base" is not specified, they'll be compared
+    /// Benchs to compare.  If "base" is not specified, they'll be compared
     /// consecutively.
     pub labels: Vec<String>,
 }
 impl Options {
-    pub fn pairs(&self) -> Vec<(Label, Label)> {
+    pub fn pairs(&self) -> Vec<(Bench, Bench)> {
         if let Some(base) = &self.base {
-            let base = Label::from(base.as_str());
+            let base = Bench::from(base.as_str());
             self.labels
                 .iter()
-                .map(|x| (base, Label::from(x.as_str())))
+                .map(|x| (base, Bench::from(x.as_str())))
                 .collect()
         } else {
-            let iter = self.labels.iter().map(|x| Label::from(x.as_str()));
+            let iter = self.labels.iter().map(|x| Bench::from(x.as_str()));
             iter.clone().zip(iter.skip(1)).collect()
         }
     }
@@ -69,7 +69,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
-        let label = Label::from(row.next().unwrap());
+        let label = Bench::from(row.next().unwrap());
         let values = row.map(|x| x.parse().unwrap());
         measurements.update(label, all_metrics.iter().cloned().zip(values));
 

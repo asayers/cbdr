@@ -5,31 +5,31 @@ use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub struct Measurements {
-    pub stats: BTreeMap<(Label, Metric), Statistics>,
+    pub stats: BTreeMap<(Bench, Metric), Statistics>,
 }
 
 impl Measurements {
-    pub fn update(&mut self, label: Label, values: impl Iterator<Item = (Metric, f64)>) {
+    pub fn update(&mut self, label: Bench, values: impl Iterator<Item = (Metric, f64)>) {
         for (stat, value) in values {
             let Statistics(count, x) = self.stats.entry((label, stat)).or_default();
             *count += 1;
             x.update(value);
         }
     }
-    pub fn iter_label(&self, label: Label) -> impl Iterator<Item = (Metric, &Statistics)> {
+    pub fn iter_label(&self, label: Bench) -> impl Iterator<Item = (Metric, &Statistics)> {
         self.stats
             .range((label, Metric::MIN)..=(label, Metric::MAX))
             .map(|((_, metric), stats)| (*metric, stats))
     }
 
-    pub fn diff(&self, from: Label, to: Label) -> Diff {
+    pub fn diff(&self, from: Bench, to: Bench) -> Diff {
         let xs = self.iter_label(from);
         let ys = self.iter_label(to);
         Diff::new(xs, ys)
     }
 
-    pub fn labels(&self) -> impl Iterator<Item = Label> + Clone {
-        let mut scores: Vec<(Label, f64)> = vec![];
+    pub fn labels(&self) -> impl Iterator<Item = Bench> + Clone {
+        let mut scores: Vec<(Bench, f64)> = vec![];
         let mut cur_score = 0.;
         let mut cur_label = None;
         for ((label, _), stats) in &self.stats {
@@ -49,7 +49,7 @@ impl Measurements {
         scores.into_iter().map(|x| x.0)
     }
 
-    pub fn guess_pairs(&self) -> Vec<(Label, Label)> {
+    pub fn guess_pairs(&self) -> Vec<(Bench, Bench)> {
         let labels = self.labels();
         labels.clone().zip(labels.skip(1)).collect()
     }

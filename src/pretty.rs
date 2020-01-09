@@ -21,7 +21,7 @@ impl State {
         &mut self,
         all_metrics: &[Metric],
         measurements: &Measurements,
-        diffs: &[(Label, Label, Diff)],
+        diffs: &[(Bench, Bench, Diff)],
     ) -> Result<()> {
         // Clear the previous output
         for _ in 0..self.n {

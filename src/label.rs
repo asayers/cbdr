@@ -32,14 +32,14 @@ fn idx_to_color(idx: usize) -> Color {
 }
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
-pub struct Label(usize);
-impl From<&str> for Label {
-    fn from(x: &str) -> Label {
+pub struct Bench(usize);
+impl From<&str> for Bench {
+    fn from(x: &str) -> Bench {
         let mut cache = BENCH_CACHE.lock().unwrap();
-        Label(cache.insert(x))
+        Bench(cache.insert(x))
     }
 }
-impl fmt::Display for Label {
+impl fmt::Display for Bench {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let cache = BENCH_CACHE.lock().unwrap();
         let color = idx_to_color(self.0);
@@ -74,20 +74,20 @@ mod tests {
     #[test]
     fn test_roudtrip() {
         assert_eq!(
-            Label::from("foobar").to_string(),
+            Bench::from("foobar").to_string(),
             "\u{1b}[35mfoobar\u{1b}[0m"
         );
         assert_eq!(Metric::from("zipzap").to_string(), "zipzap");
         assert_eq!(
-            Label::from("barqux").to_string(),
+            Bench::from("barqux").to_string(),
             "\u{1b}[33mbarqux\u{1b}[0m"
         );
         assert_eq!(
-            Label::from("barqux").to_string(),
+            Bench::from("barqux").to_string(),
             "\u{1b}[33mbarqux\u{1b}[0m"
         );
         assert_eq!(
-            Label::from("foobar").to_string(),
+            Bench::from("foobar").to_string(),
             "\u{1b}[35mfoobar\u{1b}[0m"
         );
         assert_eq!(Metric::from("zipzap").to_string(), "zipzap");
