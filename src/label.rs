@@ -1,54 +1,46 @@
 use ansi_term::{Color, Style};
+use arc_swap::ArcSwap;
 use once_cell::sync::{Lazy, OnceCell};
 use std::fmt;
-use std::sync::Mutex;
 
-static BENCH_CACHE: Lazy<Mutex<LabelCache>> = Lazy::new(|| Mutex::new(LabelCache::default()));
+static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(|| ArcSwap::default());
 
-#[derive(Default)]
-struct LabelCache(Vec<String>);
+#[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
+pub struct Bench(pub usize);
 
-impl LabelCache {
-    fn insert(&mut self, label: &str) -> usize {
-        match self.0.iter().position(|x| x == label) {
-            Some(x) => x,
+impl From<&str> for Bench {
+    fn from(x: &str) -> Bench {
+        match BENCH_CACHE.load().iter().position(|y| x == y) {
+            Some(x) => Bench(x),
             None => {
-                self.0.push(label.to_string());
-                self.0.len() - 1
+                let old = BENCH_CACHE.rcu(|cache| {
+                    let mut cache = Vec::clone(&cache);
+                    cache.push(x.to_string());
+                    cache
+                });
+                Bench(old.len())
             }
         }
     }
 }
 
-fn idx_to_color(idx: usize) -> Color {
-    match idx % 4 {
-        0 => Color::Purple,
-        1 => Color::Yellow,
-        2 => Color::Cyan,
-        3 => Color::Green,
-        _ => unreachable!(),
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
-pub struct Bench(pub usize);
-impl From<&str> for Bench {
-    fn from(x: &str) -> Bench {
-        let mut cache = BENCH_CACHE.lock().unwrap();
-        Bench(cache.insert(x))
-    }
-}
 impl fmt::Display for Bench {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let cache = BENCH_CACHE.lock().unwrap();
-        let color = idx_to_color(self.0);
-        let s = &cache.0[self.0];
+        let color = match self.0 % 4 {
+            0 => Color::Purple,
+            1 => Color::Yellow,
+            2 => Color::Cyan,
+            3 => Color::Green,
+            _ => unreachable!(),
+        };
+        let cache = BENCH_CACHE.load();
+        let s = &cache[self.0];
         write!(f, "{}", Style::new().fg(color).paint(s))
     }
 }
 
 pub fn all_benches() -> impl Iterator<Item = Bench> {
-    (0..BENCH_CACHE.lock().unwrap().0.len()).map(Bench)
+    (0..BENCH_CACHE.load().len()).map(Bench)
 }
 
 static METRIC_CACHE: OnceCell<Vec<String>> = OnceCell::new();
