@@ -1,4 +1,3 @@
-use crate::diff::*;
 use crate::label::*;
 use crate::summarize::*;
 use ansi_term::Style;
@@ -8,7 +7,7 @@ use std::io::Write;
 
 pub fn render(
     measurements: &Measurements,
-    diffs: impl Iterator<Item = (Bench, Bench, Diff)>,
+    diffs: impl Iterator<Item = (Bench, Bench, Vec<DiffCI>)>,
 ) -> Result<Vec<u8>> {
     let mut out = tabwriter::TabWriter::new(Vec::<u8>::new());
 
@@ -19,21 +18,10 @@ pub fn render(
     }
     writeln!(out)?;
     for bench in all_benches() {
-        let count = measurements
-            .iter_label(bench)
-            .map(|x| (x.1).0)
-            .next()
-            .unwrap_or(0);
+        let count = measurements.bench_stats(bench)[0].0;
         write!(out, "{}\t{}", bench, count)?;
-        for metric in all_metrics() {
-            write!(
-                out,
-                "\t{:.3}",
-                measurements
-                    .get(bench, metric)
-                    .map(|stats| stats.1.mean)
-                    .unwrap_or(std::f64::NAN)
-            )?;
+        for stats in measurements.bench_stats(bench) {
+            write!(out, "\t{:.3}", stats.1.mean)?;
         }
         writeln!(out)?;
     }
@@ -46,16 +34,16 @@ pub fn render(
             "\t{:^20}\t{:^20}\t{:^20}\t{:^20}",
             "95% CI", "99% CI", "99.9% CI", "99.99% CI",
         )?;
-        for (idx, ci) in diff.0.iter().enumerate() {
+        for (idx, ci) in diff.iter().enumerate() {
             let metric = Metric(idx);
             writeln!(
                 out,
                 "    {}\t{}\t{}\t{}\t{}",
                 metric,
-                PrettyCI(*ci, 0.95),
-                PrettyCI(*ci, 0.99),
-                PrettyCI(*ci, 0.999),
-                PrettyCI(*ci, 0.9999),
+                fmt_ci(ci.interval(0.95)),
+                fmt_ci(ci.interval(0.99)),
+                fmt_ci(ci.interval(0.999)),
+                fmt_ci(ci.interval(0.9999)),
             )?;
         }
     }
@@ -64,20 +52,11 @@ pub fn render(
     Ok(out)
 }
 
-struct PrettyCI(DiffCI, f64);
-
-impl fmt::Display for PrettyCI {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let delta = self.0.stats_y.mean - self.0.stats_x.mean;
-        let width = self.0.ci(self.1);
-        let left = format!("{:+.1}", 100. * (delta - width) / self.0.stats_x.mean);
-        let right = format!("{:+.1}", 100. * (delta + width) / self.0.stats_x.mean);
-        let style = if delta > width || delta < -width {
-            Style::new().bold()
-        } else {
-            Style::new().dimmed()
-        };
-        let s = format!("[{:>6}% .. {:>6}%]", left, right);
-        write!(f, "{}", style.paint(s))
+fn fmt_ci((l, r): (f64, f64)) -> impl fmt::Display {
+    let s = format!("[{:>+6.1}% .. {:>+6.1}%]", l, r);
+    if l > 0. || r < 0. {
+        Style::new().bold().paint(s)
+    } else {
+        Style::new().dimmed().paint(s)
     }
 }

@@ -97,9 +97,9 @@ pub fn analyze(opts: Options) -> Result<()> {
 
     if opts.deny_positive {
         for (from, to) in opts.pairs() {
-            for (idx, ci) in measurements.diff(from, to).0.into_iter().enumerate() {
+            for (idx, ci) in measurements.diff(from, to).into_iter().enumerate() {
                 let metric = Metric(idx);
-                if ci.delta() > ci.ci(0.95) {
+                if ci.interval(0.95).0 > 0. {
                     bail!("{}..{}: {} increased!", from, to, metric);
                 }
             }
