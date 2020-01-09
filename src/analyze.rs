@@ -2,7 +2,6 @@ use crate::label::*;
 use crate::pretty;
 use crate::summarize;
 use anyhow::*;
-use std::collections::BTreeMap;
 use std::time::*;
 use structopt::*;
 
@@ -23,15 +22,13 @@ pub struct Options {
 impl Options {
     pub fn pairs(&self) -> Vec<(Label, Label)> {
         if let Some(base) = &self.base {
-            let base = Label::from(base.clone());
+            let base = Label::from(base.as_str());
             self.labels
                 .iter()
-                .cloned()
-                .map(Label::from)
-                .map(move |to| (base.clone(), to))
+                .map(|x| (base, Label::from(x.as_str())))
                 .collect()
         } else {
-            let iter = self.labels.iter().cloned().map(Label::from);
+            let iter = self.labels.iter().map(|x| Label::from(x.as_str()));
             iter.clone().zip(iter.skip(1)).collect()
         }
     }
@@ -58,10 +55,10 @@ pub fn analyze(opts: Options) -> Result<()> {
             } else {
                 explicit_pairs.clone()
             };
-            let mut diffs = BTreeMap::default();
+            let mut diffs = vec![];
             for (from, to) in pairs {
                 let diff = measurements.diff(from.clone(), to.clone());
-                diffs.insert((from, to), diff);
+                diffs.push((from, to, diff));
             }
             pretty.print(&stat_names, &measurements, &diffs)?;
             diffs
@@ -72,7 +69,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     for row in rdr.into_records() {
         let row = row?;
         let mut row = row.into_iter();
-        let label = Label::from(row.next().unwrap().to_string());
+        let label = Label::from(row.next().unwrap());
         let values = row.map(|x| x.parse().unwrap());
         measurements.update(label, stat_names.iter().cloned().zip(values));
 
@@ -101,7 +98,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     let diffs = print!();
 
     if opts.deny_positive {
-        for ((from, to), diff) in diffs {
+        for (from, to, diff) in diffs {
             for (stat_name, ci) in diff.0 {
                 if let Some(ci) = ci {
                     if ci.delta() > ci.ci(0.95) {

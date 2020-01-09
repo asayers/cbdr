@@ -27,7 +27,7 @@ impl Measurements {
         Diff::new(xs, ys)
     }
 
-    pub fn guess_pairs(&self) -> Vec<(Label, Label)> {
+    pub fn labels(&self) -> impl Iterator<Item = Label> + Clone {
         let mut scores: Vec<(Label, f64)> = vec![];
         let mut cur_score = 0.;
         let mut cur_label = None;
@@ -45,11 +45,12 @@ impl Measurements {
             scores.push((l.clone(), cur_score));
         }
         scores.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
-        scores
-            .iter()
-            .zip(scores.iter().skip(1))
-            .map(|(x, y)| (x.0.clone(), y.0.clone()))
-            .collect()
+        scores.into_iter().map(|x| x.0)
+    }
+
+    pub fn guess_pairs(&self) -> Vec<(Label, Label)> {
+        let labels = self.labels();
+        labels.clone().zip(labels.skip(1)).collect()
     }
 }
 

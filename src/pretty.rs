@@ -1,9 +1,8 @@
 use crate::diff::*;
 use crate::label::*;
 use crate::summarize::*;
-use ansi_term::{Color, Style};
+use ansi_term::Style;
 use anyhow::*;
-use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Write;
 
@@ -22,7 +21,7 @@ impl State {
         &mut self,
         stat_names: &[String],
         measurements: &Measurements,
-        diffs: &BTreeMap<(Label, Label), Diff>,
+        diffs: &[(Label, Label, Diff)],
     ) -> Result<()> {
         // Clear the previous output
         for _ in 0..self.n {
@@ -39,36 +38,20 @@ impl State {
             }
             writeln!(out)?;
             self.n += 1;
-            for (idx, label) in diffs
-                .iter()
-                .enumerate()
-                .take(1)
-                .map(|(idx, ((label, _), _))| (idx, label))
-                .chain(
-                    diffs
-                        .iter()
-                        .enumerate()
-                        .map(|(idx, ((_, label), _))| (idx + 1, label)),
-                )
-            {
+            for label in measurements.labels() {
                 let count = measurements
                     .iter_label(label.clone())
                     .map(|x| (x.1).0)
                     .next()
                     .unwrap_or(0);
-                write!(
-                    out,
-                    "{}\t{}",
-                    Style::new().fg(idx_to_color(idx)).paint(&label.0),
-                    count,
-                )?;
+                write!(out, "{}\t{}", label, count)?;
                 for stat_name in stat_names {
                     write!(
                         out,
                         "\t{:.3}",
                         measurements
                             .0
-                            .get(&(label.clone(), stat_name.clone()))
+                            .get(&(label, stat_name.clone()))
                             .map(|stats| stats.1.mean)
                             .unwrap_or(std::f64::NAN)
                     )?;
@@ -79,35 +62,17 @@ impl State {
             out.flush()?;
         }
 
-        for (idx, ((from, to), diff)) in diffs.into_iter().enumerate() {
+        for (from, to, diff) in diffs {
             self.n += diff.0.len() + 4;
-            let from_color = idx_to_color(idx);
-            let to_color = idx_to_color(idx + 1);
-            writeln!(
-                self.stdout,
-                "\n{}{}{}:\n",
-                Style::new().fg(from_color).paint(&from.0),
-                Style::new().paint(" vs "),
-                Style::new().fg(to_color).paint(&to.0)
-            )?;
+            writeln!(self.stdout, "\n{} vs {}:\n", from, to)?;
             let mut out = tabwriter::TabWriter::new(&mut self.stdout);
             write_key(&mut out)?;
             for (stat, ci) in &diff.0 {
-                writeln!(out, "    {}\t{}", stat, PrettyCI(*ci, from_color, to_color))?;
+                writeln!(out, "    {}\t{}", stat, PrettyCI(*ci))?;
             }
             out.flush()?;
         }
         Ok(())
-    }
-}
-
-fn idx_to_color(idx: usize) -> Color {
-    match idx % 4 {
-        0 => Color::Purple,
-        1 => Color::Yellow,
-        2 => Color::Cyan,
-        3 => Color::Green,
-        _ => unreachable!(),
     }
 }
 
@@ -116,7 +81,7 @@ fn write_key(mut out: impl Write) -> Result<()> {
     Ok(())
 }
 
-struct PrettyCI(Option<DiffCI>, Color, Color);
+struct PrettyCI(Option<DiffCI>);
 
 macro_rules! highlight_if {
     ($cond: expr, $x:expr) => {
