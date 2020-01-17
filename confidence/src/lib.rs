@@ -1,3 +1,31 @@
+/*! A crate for testing whether the means of two distributions are the same.
+
+## Example
+
+Suppose we have a population distributed as `X` (normal), and another
+distributed as `Y` (also normal, but possibly with different mean/variance to
+`X`).  Let's take a sample from each population to estimate the difference
+between the population means.
+
+```
+# use confidence::*;
+let x_sample: Vec<f64> = vec![1., 2., 3., 4.];
+let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
+
+let x_stats = x_sample.into_iter().collect::<Stats>();
+let y_stats = y_sample.into_iter().collect::<Stats>();
+let width = confidence_interval(0.95, x_stats, y_stats).unwrap();
+let msg = format!(
+    "Δ = {:+.2} ± {:.2} (p=95%)",
+    y_stats.mean - x_stats.mean,
+    width,
+);
+assert_eq!(msg, "Δ = +4.50 ± 3.89 (p=95%)");
+// Looks like μ[Y] > μ[X]!
+```
+
+*/
+
 mod stats;
 pub mod student_t;
 
