@@ -3,17 +3,15 @@ pub mod student_t;
 /// Statictics for a sample taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Stats {
+    // The sample size
     pub count: usize,
+    // The sample mean
     pub mean: f64,
-    pub std_dev: f64,
+    // The sample variance
+    pub var: f64,
 }
 
 impl Stats {
-    /// An estimate of the population variance
-    fn var(self) -> f64 {
-        self.std_dev * self.std_dev
-    }
-
     /// An estimate of the variance of `mean` (which is an estimate of the
     /// population mean).
     ///
@@ -22,7 +20,7 @@ impl Stats {
     /// don't know σ², we have to estimate the variance of the estimated
     /// mean by s²/n.
     fn mean_var(self) -> f64 {
-        self.var() / self.count as f64
+        self.var / self.count as f64
     }
 }
 
@@ -52,10 +50,10 @@ pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Result<f64, Er
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
     }
-    if !x.var().is_finite() || !y.var().is_finite() {
+    if !x.var.is_finite() || !y.var.is_finite() {
         return Err(Error::InfiniteVariance);
     }
-    if x.var() == 0. || y.var() == 0. {
+    if x.var == 0. || y.var == 0. {
         return Err(Error::ZeroVariance);
     }
 
@@ -134,12 +132,12 @@ mod tests {
         let s1 = Stats {
             count: 10,
             mean: 5.,
-            std_dev: 1.,
+            var: 1.,
         };
         let s2 = Stats {
             count: 10,
             mean: 6.,
-            std_dev: 1.5,
+            var: 2.25,
         };
 
         assert_eq!(
@@ -162,12 +160,12 @@ mod tests {
         let females = Stats {
             count: 17,
             mean: 5.353,
-            std_dev: 2.743f64.sqrt(),
+            var: 2.743f64,
         };
         let males = Stats {
             count: 17,
             mean: 3.882,
-            std_dev: 2.985f64.sqrt(),
+            var: 2.985f64,
         };
         assert_eq!(
             student_t::inv_cdf(0.975, 31.773948759590525),
@@ -187,12 +185,12 @@ mod tests {
         let x = Stats {
             count: 6,
             mean: 10.,
-            std_dev: 0.7206,
+            var: (0.7206_f64).powf(2.),
         };
         let y = Stats {
             count: 7,
             mean: 15.,
-            std_dev: 0.7206,
+            var: (0.7206_f64).powf(2.),
         };
         assert_eq!(
             ConfidenceInterval::new(0.95, x, y).to_string(),
@@ -206,12 +204,12 @@ mod tests {
     //     let x = Stats {
     //         count: 100,
     //         mean: 10.,
-    //         std_dev: 0.022789,
+    //         var: (0.022789).powf(2.),
     //     };
     //     let y = Stats {
     //         count: 95,
     //         mean: 19.261460,
-    //         std_dev: 0.022789,
+    //         var: (0.022789).powf(2.),
     //     };
     //     assert_eq!(
     //         ConfidenceInterval::new(0.95, x, y).to_string(),

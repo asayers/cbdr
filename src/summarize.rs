@@ -57,7 +57,7 @@ impl Into<confidence::Stats> for &RollingStats {
         confidence::Stats {
             count: self.0,
             mean: self.1.mean,
-            std_dev: self.1.std_dev,
+            var: self.1.std_dev * self.1.std_dev,
         }
     }
 }
