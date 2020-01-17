@@ -2,7 +2,6 @@ mod analyze;
 mod label;
 mod pretty;
 mod sample;
-mod summarize;
 
 use structopt::StructOpt;
 

@@ -1,5 +1,5 @@
 use crate::label::*;
-use crate::summarize::*;
+use crate::analyze::*;
 use ansi_term::Style;
 use anyhow::*;
 use std::fmt;
