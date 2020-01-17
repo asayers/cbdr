@@ -1,3 +1,5 @@
+use std::iter::FromIterator;
+
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct StatsBuilder {
     /// the number of samples seen so far
@@ -39,6 +41,14 @@ impl StatsBuilder {
     }
 }
 
+impl Extend<f64> for StatsBuilder {
+    fn extend<T: IntoIterator<Item = f64>>(&mut self, iter: T) {
+        for x in iter {
+            self.update(x);
+        }
+    }
+}
+
 /// Statictics for a sample taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Stats {
@@ -57,6 +67,14 @@ impl From<StatsBuilder> for Stats {
             mean: x.mean(),
             var: x.sample_var(),
         }
+    }
+}
+
+impl FromIterator<f64> for Stats {
+    fn from_iter<T: IntoIterator<Item = f64>>(iter: T) -> Stats {
+        let mut bldr = StatsBuilder::default();
+        bldr.extend(iter);
+        bldr.into()
     }
 }
 
