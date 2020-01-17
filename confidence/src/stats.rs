@@ -90,3 +90,26 @@ impl Stats {
         self.var / self.count as f64
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let stats = vec![1.0_f64, 2., 3.].into_iter().collect::<Stats>();
+        assert_eq!(stats.count, 3);
+        assert_eq!(stats.mean, 2.);
+        assert_eq!(stats.var, 1.);
+
+        let stats = vec![0.0_f64, -2., 2.].into_iter().collect::<Stats>();
+        assert_eq!(stats.count, 3);
+        assert_eq!(stats.mean, 0.);
+        assert_eq!(stats.var, 4.);
+
+        let stats = (0..=100).into_iter().map(f64::from).collect::<Stats>();
+        assert_eq!(stats.count, 101);
+        assert_eq!(stats.mean, 50.);
+        assert_eq!(stats.var, 858.5);
+    }
+}
