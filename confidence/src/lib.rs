@@ -1,4 +1,7 @@
+mod stats;
 pub mod student_t;
+
+pub use stats::*;
 
 /// Statictics for a sample taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -9,6 +12,16 @@ pub struct Stats {
     pub mean: f64,
     // The sample variance
     pub var: f64,
+}
+
+impl From<StatsBuilder> for Stats {
+    fn from(x: StatsBuilder) -> Stats {
+        Stats {
+            count: x.count(),
+            mean: x.mean(),
+            var: x.sample_var(),
+        }
+    }
 }
 
 impl Stats {

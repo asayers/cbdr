@@ -2,7 +2,7 @@ use crate::label::*;
 use log::*;
 
 pub struct Measurements {
-    msmts: Vec<RollingStats>,
+    msmts: Vec<confidence::StatsBuilder>,
     stride: usize, // a global constant, cached here for speed
 }
 
@@ -16,15 +16,16 @@ impl Default for Measurements {
 }
 
 impl Measurements {
-    pub fn bench_stats(&self, bench: Bench) -> &[RollingStats] {
+    pub fn bench_stats(&self, bench: Bench) -> &[confidence::StatsBuilder] {
         &self.msmts[bench.0 * self.stride..(bench.0 + 1) * self.stride]
     }
 
-    fn bench_stats_mut(&mut self, bench: Bench) -> &mut [RollingStats] {
+    fn bench_stats_mut(&mut self, bench: Bench) -> &mut [confidence::StatsBuilder] {
         let start = self.stride * bench.0;
         let end = self.stride * (bench.0 + 1);
         if self.msmts.len() < end {
-            self.msmts.resize_with(end, RollingStats::default);
+            self.msmts
+                .resize_with(end, confidence::StatsBuilder::default);
         }
         &mut self.msmts[start..end]
     }
@@ -42,57 +43,6 @@ impl Measurements {
             .zip(self.bench_stats(to).iter().copied())
             .map(|(from, to)| DiffCI(from.into(), to.into()))
             .collect::<Vec<_>>()
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
-pub struct RollingStats {
-    /// the number of samples seen so far
-    count: usize,
-    /// the mean of the entire dataset
-    mean: f64,
-    /// the squared distance from the mean
-    m2: f64,
-}
-
-impl RollingStats {
-    pub fn update(&mut self, x: f64) {
-        // Welford's online algorithm
-        self.count += 1;
-        let delta1 = x - self.mean; // diff from the old mean
-        self.mean += delta1 / self.count as f64;
-        let delta2 = x - self.mean; // diff from the new mean
-        self.m2 += delta1 * delta2;
-    }
-
-    pub fn count(self) -> usize {
-        self.count
-    }
-
-    pub fn mean(self) -> f64 {
-        if self.count == 0 {
-            std::f64::NAN
-        } else {
-            self.mean
-        }
-    }
-
-    pub fn sample_var(self) -> f64 {
-        if self.count <= 1 {
-            std::f64::NAN
-        } else {
-            self.m2 / (self.count - 1) as f64
-        }
-    }
-}
-
-impl Into<confidence::Stats> for RollingStats {
-    fn into(self) -> confidence::Stats {
-        confidence::Stats {
-            count: self.count,
-            mean: self.mean(),
-            var: self.sample_var(),
-        }
     }
 }
 
