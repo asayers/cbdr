@@ -3,40 +3,6 @@ pub mod student_t;
 
 pub use stats::*;
 
-/// Statictics for a sample taken from a normally-distributed population.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Stats {
-    // The sample size
-    pub count: usize,
-    // The sample mean
-    pub mean: f64,
-    // The sample variance
-    pub var: f64,
-}
-
-impl From<StatsBuilder> for Stats {
-    fn from(x: StatsBuilder) -> Stats {
-        Stats {
-            count: x.count(),
-            mean: x.mean(),
-            var: x.sample_var(),
-        }
-    }
-}
-
-impl Stats {
-    /// An estimate of the variance of `mean` (which is an estimate of the
-    /// population mean).
-    ///
-    /// When estimating μ with a sample mean ̄x, the variance of this
-    /// estimate is σ²/n, where n is the size of the sample.  Since we also
-    /// don't know σ², we have to estimate the variance of the estimated
-    /// mean by s²/n.
-    fn mean_var(self) -> f64 {
-        self.var / self.count as f64
-    }
-}
-
 /// A confidence interval for `y.mean - x.mean`.  This function returns the
 /// half-width of the confidence interval, ie. the `i` in `y.mean - x.mean
 /// ± i`.
