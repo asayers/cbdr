@@ -50,7 +50,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     init_metrics(headers.map(|x| x.to_string()).collect());
     let mut measurements = Measurements::default();
 
-    let mut printer = Printer::new()?;
+    let mut stdout = term_paint::Painter::new()?;
 
     let mut last_print = Instant::now();
     for row in rdr.into_records() {
@@ -67,7 +67,7 @@ pub fn analyze(opts: Options) -> Result<()> {
                 (from, to, diff)
             });
             let out = pretty::render(&measurements, diffs)?;
-            printer.print(out)?;
+            stdout.print(&out)?;
 
             // // Check to see if we're finished
             // if let Some(threshold) = opts.threshold {
@@ -92,7 +92,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         (from, to, diff)
     });
     let out = pretty::render(&measurements, diffs)?;
-    printer.print(out)?;
+    stdout.print(&out)?;
 
     if opts.deny_positive {
         for (from, to) in opts.pairs() {
@@ -106,30 +106,6 @@ pub fn analyze(opts: Options) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub struct Printer {
-    stdout: Box<term::StdoutTerminal>,
-    /// The number of lines output in the previous iteration
-    n: usize,
-}
-impl Printer {
-    pub fn new() -> Result<Printer> {
-        Ok(Printer {
-            stdout: term::stdout().ok_or_else(|| anyhow!("Couldn't open stdout as a terminal"))?,
-            n: 0,
-        })
-    }
-    // Clear the previous output and replace it with the new output
-    pub fn print(&mut self, out: Vec<u8>) -> Result<()> {
-        for _ in 0..self.n {
-            self.stdout.cursor_up()?;
-            self.stdout.delete_line()?;
-        }
-        self.stdout.write_all(&out)?;
-        self.n = out.into_iter().filter(|c| *c == b'\n').count();
-        Ok(())
-    }
 }
 
 pub struct Measurements {

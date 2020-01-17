@@ -20,11 +20,11 @@ rand = "0.7"
 serde_json = "1.0"
 structopt = "0.3"
 tabwriter = { version = "1.1", features = ["ansi_formatting"] }
-term = "0.6"
+term_paint = { path = "term_paint" }
 time_cmd = { path = "time_cmd" }
 
 [profile.release]
 debug = true
 
 [workspace]
-members = ["confidence", "time_cmd"]
+members = ["confidence", "term_paint", "time_cmd"]
