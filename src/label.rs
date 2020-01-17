@@ -67,12 +67,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_roudtrip() {
+    fn test_bench_roundtrip() {
         assert_eq!(
             Bench::from("foobar").to_string(),
             "\u{1b}[35mfoobar\u{1b}[0m"
         );
-        assert_eq!(Metric::from("zipzap").to_string(), "zipzap");
         assert_eq!(
             Bench::from("barqux").to_string(),
             "\u{1b}[33mbarqux\u{1b}[0m"
@@ -85,6 +84,12 @@ mod tests {
             Bench::from("foobar").to_string(),
             "\u{1b}[35mfoobar\u{1b}[0m"
         );
-        assert_eq!(Metric::from("zipzap").to_string(), "zipzap");
+    }
+
+    #[test]
+    fn test_metric_roundtrip() {
+        init_metrics(vec!["foobar".into(), "barqux".into()]);
+        assert_eq!(Metric(0).to_string(), "foobar");
+        assert_eq!(Metric(1).to_string(), "barqux");
     }
 }
