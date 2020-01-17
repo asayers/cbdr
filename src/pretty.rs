@@ -18,10 +18,10 @@ pub fn render(
     }
     writeln!(out)?;
     for bench in all_benches() {
-        let count = measurements.bench_stats(bench)[0].0;
+        let count = measurements.bench_stats(bench)[0].count();
         write!(out, "{}\t{}", bench, count)?;
         for stats in measurements.bench_stats(bench) {
-            write!(out, "\t{:.3}", stats.1.mean)?;
+            write!(out, "\t{:.3}", stats.mean())?;
         }
         writeln!(out)?;
     }

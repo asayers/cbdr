@@ -31,33 +31,67 @@ impl Measurements {
 
     pub fn update(&mut self, bench: Bench, new_measurements: impl Iterator<Item = f64>) {
         for (stats, msmt) in self.bench_stats_mut(bench).iter_mut().zip(new_measurements) {
-            stats.0 += 1;
-            stats.1.update(msmt);
+            stats.update(msmt);
         }
     }
 
     pub fn diff(&self, from: Bench, to: Bench) -> Vec<DiffCI> {
         self.bench_stats(from)
             .iter()
-            .zip(self.bench_stats(to).iter())
+            .copied()
+            .zip(self.bench_stats(to).iter().copied())
             .map(|(from, to)| DiffCI(from.into(), to.into()))
             .collect::<Vec<_>>()
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct RollingStats(pub usize, pub rolling_stats::Stats<f64>);
-impl Default for RollingStats {
-    fn default() -> RollingStats {
-        RollingStats(0, rolling_stats::Stats::new())
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub struct RollingStats {
+    /// the number of samples seen so far
+    count: usize,
+    /// the mean of the entire dataset
+    mean: f64,
+    /// the squared distance from the mean
+    m2: f64,
+}
+
+impl RollingStats {
+    pub fn update(&mut self, x: f64) {
+        // Welford's online algorithm
+        self.count += 1;
+        let delta1 = x - self.mean; // diff from the old mean
+        self.mean += delta1 / self.count as f64;
+        let delta2 = x - self.mean; // diff from the new mean
+        self.m2 += delta1 * delta2;
+    }
+
+    pub fn count(self) -> usize {
+        self.count
+    }
+
+    pub fn mean(self) -> f64 {
+        if self.count == 0 {
+            std::f64::NAN
+        } else {
+            self.mean
+        }
+    }
+
+    pub fn sample_var(self) -> f64 {
+        if self.count <= 1 {
+            std::f64::NAN
+        } else {
+            self.m2 / (self.count - 1) as f64
+        }
     }
 }
-impl Into<confidence::Stats> for &RollingStats {
+
+impl Into<confidence::Stats> for RollingStats {
     fn into(self) -> confidence::Stats {
         confidence::Stats {
-            count: self.0,
-            mean: self.1.mean,
-            var: self.1.std_dev * self.1.std_dev,
+            count: self.count,
+            mean: self.mean(),
+            var: self.sample_var(),
         }
     }
 }
