@@ -76,7 +76,7 @@ This is just a more extreme version of "benchmarking commit A, then
 benchmarking commit B", except now your results are correlated with sources
 of noise which vary at the day- or month-scale.  Is your cooling good enough
 to ensure that results taken in the summer are comparable with results taken
-in the winter?
+in the winter?  (Ours isn't.)
 
 #### But... I don't want to re-benchmark old commits!
 
@@ -109,9 +109,9 @@ Quoting the [Biostats handbook]:
 
 The run-time of your benchmark is an unknown distrubution.  In my experience,
 if you write a reasonable macro-benchmark, the distribution will be fairly
-close to normal.  Of course, it may not be the case: if your benchmark calls
-`sleep(random_log_normal())` then its runtime will be log-normally distributed.
-Do a normality test if you're concerned.
+close to normal.  Of course, it's not _necessarily_ the case: if your
+benchmark calls `sleep(random_log_normal())` then of course its runtime will
+be log-normally distributed.  Do a normality test if you're concerned.
 
 So: we have two distributions, assumed to be normal, but with different
 means and variances.  We want to test whether the means are different.
