@@ -44,6 +44,10 @@ blocked from merging.  Here's the method:
       at the confidence interval to see how bad the regression is, and
       decide whether you're willing to accept it.
 
+The above is just an example but hopefully you get the idea.  You can vary the
+details; for instance, why not measure RSS instead of running time?  Or measure
+RSS _as well_ as running time (but see "Comparing multiple values" below)?
+
 If you want to implement something like this yourself, this repo contains a
 [tool to help you do it](cbdr.md).
 
@@ -136,3 +140,26 @@ If your benchmark produces multiple values (eg. wall time and max RSS), then
 you probably want to check that none of them have regressed.  This multiplies
 your chance of a false positive by the number of values involved.  You can
 counteract this by multiplying the widths of your CIs by the same number.
+
+#### Splitting the benchmark up
+
+It's tempting to split your macro-benchmark up into micro-benchmarks so that
+you can see what got slower.  I don't recommend this.  Microbenchmarks are a
+great tool for exploratory benchmarking, but if you comparing them individually
+you're going to have to widen the confidence intervals as mentioned above
+(or suffer many false-positives), and it could take a really long time for
+them to converge (if they ever converge enough at all).
+
+In general, the tools used for performance _validation_ ("did it get
+slower?") are not the same as the tools used for performance _profiling_
+("which bit got slower?").  For the latter, [perf] ([see also]), [heap
+profiling], [causal profiling], regression-based [micro-benchmarks], and
+[flame graphs] are you friends.  But you don't need any of that fanciness to
+validate overall performance - just one good macro-benchmark and a stopwatch.
+
+[perf]: https://perf.wiki.kernel.org/
+[see also]: http://www.brendangregg.com/perf.html
+[heap profiling]: https://github.com/KDE/heaptrack
+[causal profiling]: https://github.com/plasma-umass/coz
+[micro-benchmarks]: http://www.serpentine.com/criterion/
+[flame graphs]: https://github.com/llogiq/flame
