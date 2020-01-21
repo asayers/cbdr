@@ -28,21 +28,20 @@ blocked from merging.  Here's the method:
 2. Randomly pick one of your two checkouts and run `bench.sh`, measuring the
    time it takes to run.  Append the result to that checkout's "measurements"
    file.
-3. Compute the 99.9% one-tailed [confidence interval] for the difference of
-   the means.  The choice of α=0.1% means that one in a thousand runs will
-   yield a false positive.
-4. Is the width of the confidence interval still bigger than 5% of the
-   merge-base's mean time?
-    * If "yes", go back to step 2.  Every new measurement will shrink the
-      confience interval a bit.
-    * If "no", the confience interval is now tight enough to spot a 5%
-      regression; proceed.
-5. Is the lower bound less than zero?
-    * If "yes", there's no evidence that the feature-branch's mean running time
-      is larger than the merge-base's mean running time; you're good to merge!
-    * If "no", it looks like the running time has regressed.  Take a look
-      at the confidence interval to see how bad the regression is, and
-      decide whether you're willing to accept it.
+3. Compute a one-tailed [confidence interval] for the difference of the means.
+   The choice of α determines how many false-positive CI runs you're going to
+   get, but note that a choosing higher confidence level means the confidence
+   interval will shrink more slowly.
+4. Look at the confidence interval as a percentage of the mean running time
+   of the merge-base.
+    * Is the upper bound less than +2%?  If so, you're good to merge!
+    * Is the lower bound greater than +2%?  If so, it looks like there's
+      a regression.
+    * Otherwise, the confidence interval is too wide and you need more data:
+      go back to step 2.
+    * You may also want to include a time-limit.  Once it's reached, just
+      check that the lower bound is above +2%.  If it is, there's no evidence
+      of a regression, and it's probably safe to merge.
 
 The above is just an example but hopefully you get the idea.  You can vary the
 details; for instance, why not measure RSS instead of running time?  Or measure
