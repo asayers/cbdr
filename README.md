@@ -17,11 +17,14 @@ you apply a particular patch.
 
 ## An illustative example
 
-Your repo contains a macro-benchmark called `bench.sh`.  It only takes a few
-seconds to run.  If a feature branch increases `bench.sh`'s running time by
-more than 5%, it should be blocked from merging.  Here's the method:
+For the sake of example, here's the situation: your repo contains a nice
+macro-benchmark called `bench.sh`.  It only takes a second or so to run,
+and it runs all the stuff you care about.  The rule is that if a feature
+branch increases `bench.sh`'s running time by more than 2%, it should be
+blocked from merging.  Here's the method:
 
-1. Check out the feature branch in one worktree and its merge-base in another.
+1. Check out the feature branch and its merge-base in separate worktrees,
+   and build whatever needs building.
 2. Randomly pick one of your two checkouts and run `bench.sh`, measuring the
    time it takes to run.  Append the result to that checkout's "measurements"
    file.
