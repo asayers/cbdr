@@ -1,5 +1,5 @@
-use crate::label::*;
 use crate::analyze::*;
+use crate::label::*;
 use ansi_term::Style;
 use anyhow::*;
 use std::fmt;
@@ -29,22 +29,16 @@ pub fn render(
     // Print the diff tables
     for (from, to, diff) in diffs {
         writeln!(out, "\n{} vs {}:\n", from, to)?;
-        writeln!(
-            out,
-            "\t{:^20}\t{:^20}\t{:^20}\t{:^20}",
-            "95% CI", "99% CI", "99.9% CI", "99.99% CI",
-        )?;
-        for (idx, ci) in diff.iter().enumerate() {
-            let metric = Metric(idx);
-            writeln!(
-                out,
-                "    {}\t{}\t{}\t{}\t{}",
-                metric,
-                fmt_ci(ci.interval(0.95)),
-                fmt_ci(ci.interval(0.99)),
-                fmt_ci(ci.interval(0.999)),
-                fmt_ci(ci.interval(0.9999)),
-            )?;
+        for metric in all_metrics() {
+            write!(out, "\t{:^20}", metric.to_string())?;
+        }
+        writeln!(out)?;
+        for p in &[0.9999, 0.999, 0.99, 0.95, 0.5, 0.] {
+            write!(out, "{}% CI", p * 100.)?;
+            for ci in diff.iter() {
+                write!(out, "\t{}", fmt_ci(ci.interval(*p)))?;
+            }
+            writeln!(out)?;
         }
     }
 
