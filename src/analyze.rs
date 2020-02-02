@@ -7,6 +7,9 @@ use structopt::*;
 
 #[derive(StructOpt)]
 pub struct Options {
+    /// The significance level of the confidence intervals
+    #[structopt(long, short, default_value = "99.9")]
+    significance: f64,
     // /// The target CI width.  Applies to the 95% CI; units are percent of base.
     // #[structopt(long)]
     // threshold: Option<f64>,
@@ -66,7 +69,7 @@ pub fn analyze(opts: Options) -> Result<()> {
                 let diff = measurements.diff(from, to);
                 (from, to, diff)
             });
-            let out = pretty::render(&measurements, diffs)?;
+            let out = pretty::render(&measurements, diffs, opts.significance)?;
             stdout.print(&out)?;
 
             // // Check to see if we're finished
@@ -91,7 +94,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         let diff = measurements.diff(from, to);
         (from, to, diff)
     });
-    let out = pretty::render(&measurements, diffs)?;
+    let out = pretty::render(&measurements, diffs, opts.significance)?;
     stdout.print(&out)?;
 
     if opts.deny_positive {
