@@ -162,3 +162,21 @@ validate overall performance - just one good macro-benchmark and a stopwatch.
 [causal profiling]: https://github.com/plasma-umass/coz
 [micro-benchmarks]: http://www.serpentine.com/criterion/
 [flame graphs]: https://github.com/llogiq/flame
+
+### Checking-in benchmark thresholds
+
+Some projects keep benchmark thresholds checked in to their repo, and fail in
+CI when those thresholds are exceeded.  I've already argued against storing
+previous benchmark results, but you _might_ consider checking in a certain
+old version of your code to compare your benchmark against.  For instance,
+you might have a file containing a revision number; CI benchmarks against
+that revision; if HEAD is slower, CI fails.  If you're OK with the performance
+of HEAD, you put a newer (slower) revision in the file and the CI passes.
+
+This has the advantage that it allows you to detect slow long-term performance
+creep.  However, this kind of creep is very rarely actionable.  In practice,
+since the failing commit isn't _really_ to blame, you just update the threshold
+and move on.  The GHC people had a system like this in place for a long time
+but [recently ditched it][GHC] because it was just seen as a nuisanse.
+
+[GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
