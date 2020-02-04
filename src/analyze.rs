@@ -49,6 +49,12 @@ impl Options {
 
 // summarize -> rate-limit -> diff -> pretty print
 pub fn analyze(opts: Options) -> Result<()> {
+    if opts.significance < 0. || opts.significance > 100. {
+        bail!("Significance level must be between 0 and 100");
+    }
+    if opts.significance < 1. {
+        warn!("Significance level is given as a percentage");
+    }
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
     let mut headers = rdr.headers().unwrap().into_iter();
     let first = headers.next().unwrap();
