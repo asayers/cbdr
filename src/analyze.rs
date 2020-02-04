@@ -6,6 +6,9 @@ use std::time::*;
 use structopt::*;
 
 #[derive(StructOpt)]
+#[structopt(
+    about = "Each table shows values for a pair of benchmarks (x and y), and shows, for each metric, x̄, ȳ, and the CI of (ȳ - x̄) / x̄"
+)]
 pub struct Options {
     /// The significance level of the confidence intervals
     #[structopt(long, short, default_value = "99.9")]

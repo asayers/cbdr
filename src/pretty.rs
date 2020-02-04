@@ -42,11 +42,6 @@ pub fn render(
         }
         writeln!(out)?;
     }
-    writeln!(
-        out,
-        "\nThe row from x to y shows the {}% CIs of (ȳ - x̄) / x̄ for each metric",
-        significance
-    )?;
 
     let out = out.into_inner()?;
     Ok(out)
