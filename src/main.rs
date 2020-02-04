@@ -12,6 +12,9 @@ enum Subcommand {
 }
 
 fn main() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "warn");
+    }
     env_logger::init();
     let result = match Subcommand::from_args() {
         Subcommand::Sample(opts) => sample::sample(opts),
