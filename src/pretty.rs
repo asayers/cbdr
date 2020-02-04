@@ -12,39 +12,41 @@ pub fn render(
 ) -> Result<Vec<u8>> {
     let mut out = tabwriter::TabWriter::new(Vec::<u8>::new());
 
-    // Print the summary table
-    write!(out, "benchmark\tsamples")?;
-    for metric in all_metrics() {
-        write!(out, "\t{:^20}", metric.to_string())?;
-    }
-    writeln!(out)?;
-    for bench in all_benches() {
-        let count = measurements.bench_stats(bench)[0].count();
-        write!(out, "{}\t{}", bench, count)?;
-        for stats in measurements.bench_stats(bench) {
-            write!(out, "\t{:^20.3}", stats.mean())?;
-        }
-        writeln!(out)?;
-    }
-    writeln!(out)?;
-
-    // Print the diff tables
-    write!(out, "from..\t..to")?;
-    for metric in all_metrics() {
-        write!(out, "\t{:^20}", metric.to_string())?;
-    }
-    writeln!(out)?;
+    let mut first = true;
     for (from, to, diff) in diffs {
-        write!(out, "{}\t{}", from, to)?;
-        // write!(out, "{}% CI", significance)?;
-        for ci in diff.iter() {
-            write!(out, "\t{}", fmt_ci(ci.interval(significance / 100.)))?;
+        if !first {
+            writeln!(out, "")?;
+        } else {
+            first = false;
         }
-        writeln!(out)?;
+        writeln!(out, "\t{}\t{}\tdifference ({}% CI)", from, to, significance)?;
+        let from_stats = measurements.bench_stats(from);
+        let to_stats = measurements.bench_stats(to);
+        for (((metric, from), to), ci) in all_metrics()
+            .zip(from_stats.iter())
+            .zip(to_stats.iter())
+            .zip(diff.iter())
+        {
+            writeln!(
+                out,
+                "{}\t{:.3} ± {:.3}\t{:.3} ± {:.3}\t{}",
+                metric,
+                from.mean(),
+                from.sample_var().sqrt(),
+                to.mean(),
+                to.sample_var().sqrt(),
+                fmt_ci(ci.interval(significance / 100.))
+            )?;
+        }
+        writeln!(
+            out,
+            "samples\t{}\t{}",
+            from_stats[0].count(),
+            to_stats[0].count()
+        )?;
     }
 
-    let out = out.into_inner()?;
-    Ok(out)
+    Ok(out.into_inner()?)
 }
 
 fn fmt_ci((l, r): (f64, f64)) -> impl fmt::Display {
