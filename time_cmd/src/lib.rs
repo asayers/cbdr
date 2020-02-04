@@ -25,8 +25,8 @@ fn time_cmd_fallback(mut cmd: Command) -> Result<Timings> {
     let d = ts.elapsed();
     Ok(Timings {
         wall_time: d,
-        user_time: 0.,
-        sys_time: 0.,
+        user_time: std::f64::NAN,
+        sys_time: std::f64::NAN,
     })
 }
 
