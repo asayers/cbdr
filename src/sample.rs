@@ -14,10 +14,8 @@ pub struct Options {
     /// These benchmarks will be run in a shell and their output will be used to compute stats
     #[structopt(long, short)]
     pub scripts: Vec<String>,
-    // #[structopt(long, short)]
-    // pub script: bool,
-    /// Labels to compare.  If "base" is not specified, they'll be compared
-    /// consecutively.
+    /// If "bench" is not specified, they'll be passed to it as $1; if not,
+    /// these will be treated like --script arguments.
     pub targets: Vec<String>,
 }
 impl Options {
@@ -25,16 +23,21 @@ impl Options {
         let mut benches = self
             .scripts
             .into_iter()
-            .map(|x| Benchmark::Script(x, vec![]))
+            .map(|x| Benchmark {
+                name: None,
+                runner: BenchRunner::Script(x, vec![]),
+            })
             .collect::<Vec<_>>();
         if let Some(bench) = self.bench {
-            benches.extend(
-                self.targets
-                    .into_iter()
-                    .map(|x| Benchmark::Script(bench.clone(), vec![x])),
-            );
+            benches.extend(self.targets.into_iter().map(|x| Benchmark {
+                name: None,
+                runner: BenchRunner::Script(bench.clone(), vec![x]),
+            }));
         } else {
-            benches.extend(self.targets.into_iter().map(Benchmark::Prog));
+            benches.extend(self.targets.into_iter().map(|x| Benchmark {
+                name: None,
+                runner: BenchRunner::Prog(x),
+            }));
         }
         benches
     }
@@ -46,13 +49,13 @@ pub fn sample(opts: Options) -> Result<()> {
     let mut stdout = CsvWriter::new(std::io::stdout(), stats.iter())?;
     // Run the benches in-order once, so `cbdr analyze` knows the correct order
     for bench in &benches {
-        let values = run_bench(bench)?;
+        let values = run_bench(&bench.runner)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
     loop {
         let idx = rand::random::<usize>() % benches.len();
         let bench = &benches[idx];
-        let values = run_bench(bench)?;
+        let values = run_bench(&bench.runner)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
 }
@@ -87,29 +90,37 @@ fn warm_up(benches: &[Benchmark]) -> Result<BTreeSet<String>> {
     let mut stats = BTreeSet::new();
     for bench in benches {
         eprintln!("Warming up {}...", bench);
-        let results = run_bench(bench)?;
+        let results = run_bench(&bench.runner)?;
         stats.extend(results.keys().cloned());
     }
     eprintln!();
     Ok(stats)
 }
 
-enum Benchmark {
+struct Benchmark {
+    name: Option<String>,
+    runner: BenchRunner,
+}
+enum BenchRunner {
     Prog(String),
     Script(String, Vec<String>),
 }
 impl fmt::Display for Benchmark {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Benchmark::Prog(x) => f.write_str(&x),
-            Benchmark::Script(x, args) => write!(f, "<{} {:?}>", x, args),
+        if let Some(name) = &self.name {
+            f.write_str(&name)
+        } else {
+            match &self.runner {
+                BenchRunner::Prog(x) => f.write_str(&x),
+                BenchRunner::Script(x, args) => write!(f, "<{} {:?}>", x, args),
+            }
         }
     }
 }
 
-fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
+fn run_bench(bench: &BenchRunner) -> Result<BTreeMap<String, f64>> {
     match bench {
-        Benchmark::Prog(x) => {
+        BenchRunner::Prog(x) => {
             let mut cmd = Command::new("/bin/sh");
             cmd.arg("-c")
                 .arg(x)
@@ -122,7 +133,7 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
             ret.insert("sys time".into(), timings.sys_time);
             Ok(ret)
         }
-        Benchmark::Script(script, args) => {
+        BenchRunner::Script(script, args) => {
             let out = Command::new(script)
                 .args(args)
                 .stdout(Stdio::piped())
