@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
+use std::str::FromStr;
 use structopt::*;
 use time_cmd::*;
 
@@ -13,31 +14,53 @@ pub struct Options {
     pub bench: Option<String>,
     /// These benchmarks will be run in a shell and their output will be used to compute stats
     #[structopt(long, short)]
-    pub scripts: Vec<String>,
+    pub scripts: Vec<NamedString>,
     /// If "bench" is not specified, they'll be passed to it as $1; if not,
     /// these will be treated like --script arguments.
-    pub targets: Vec<String>,
+    pub targets: Vec<NamedString>,
 }
+
+pub struct NamedString(Option<String>, String);
+impl FromStr for NamedString {
+    type Err = String;
+    fn from_str(x: &str) -> Result<NamedString, Self::Err> {
+        let xs = x.splitn(2, ':').collect::<Vec<_>>();
+        match &xs[..] {
+            [x] => Ok(NamedString(None, x.to_string())),
+            [name, x] => Ok(NamedString(Some(name.to_string()), x.to_string())),
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl Options {
     fn benchmarks(self) -> Vec<Benchmark> {
         let mut benches = self
             .scripts
             .into_iter()
-            .map(|x| Benchmark {
-                name: None,
-                runner: BenchRunner::Script(x, vec![]),
+            .map(|NamedString(name, rest)| Benchmark {
+                name,
+                runner: BenchRunner::Script(rest, vec![]),
             })
             .collect::<Vec<_>>();
         if let Some(bench) = self.bench {
-            benches.extend(self.targets.into_iter().map(|x| Benchmark {
-                name: None,
-                runner: BenchRunner::Script(bench.clone(), vec![x]),
-            }));
+            benches.extend(
+                self.targets
+                    .into_iter()
+                    .map(|NamedString(name, rest)| Benchmark {
+                        name,
+                        runner: BenchRunner::Script(bench.clone(), vec![rest]),
+                    }),
+            );
         } else {
-            benches.extend(self.targets.into_iter().map(|x| Benchmark {
-                name: None,
-                runner: BenchRunner::Prog(x),
-            }));
+            benches.extend(
+                self.targets
+                    .into_iter()
+                    .map(|NamedString(name, rest)| Benchmark {
+                        name,
+                        runner: BenchRunner::Prog(rest),
+                    }),
+            );
         }
         benches
     }
