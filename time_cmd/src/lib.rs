@@ -1,5 +1,5 @@
 use std::io::Result;
-use std::process::Command;
+use std::process::{Command, ExitStatus};
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -10,7 +10,7 @@ pub struct Timings {
 }
 
 /// The user must ensure that no other child processes are running.
-pub fn time_cmd(cmd: Command) -> Result<Timings> {
+pub fn time_cmd(cmd: Command) -> Result<(Timings, ExitStatus)> {
     #[cfg(unix)]
     let ret = time_cmd_posix(cmd)?;
     #[cfg(not(unix))]
@@ -19,19 +19,22 @@ pub fn time_cmd(cmd: Command) -> Result<Timings> {
 }
 
 #[allow(unused)]
-fn time_cmd_fallback(mut cmd: Command) -> Result<Timings> {
+fn time_cmd_fallback(mut cmd: Command) -> Result<(Timings, ExitStatus)> {
     let ts = Instant::now();
-    cmd.spawn()?.wait()?;
+    let status = cmd.spawn()?.wait()?;
     let d = ts.elapsed();
-    Ok(Timings {
-        wall_time: d,
-        user_time: std::f64::NAN,
-        sys_time: std::f64::NAN,
-    })
+    Ok((
+        Timings {
+            wall_time: d,
+            user_time: std::f64::NAN,
+            sys_time: std::f64::NAN,
+        },
+        status,
+    ))
 }
 
 #[cfg(unix)]
-fn time_cmd_posix(mut cmd: Command) -> Result<Timings> {
+fn time_cmd_posix(mut cmd: Command) -> Result<(Timings, ExitStatus)> {
     // times(2) and sysconf(2) are both POSIX
     let mut tms_before = libc::tms {
         tms_utime: 0,
@@ -43,7 +46,7 @@ fn time_cmd_posix(mut cmd: Command) -> Result<Timings> {
 
     unsafe { libc::times(&mut tms_before as *mut libc::tms) };
     let ts = Instant::now();
-    cmd.spawn()?.wait()?;
+    let status = cmd.spawn()?.wait()?;
     let d = ts.elapsed();
     unsafe { libc::times(&mut tms_after as *mut libc::tms) };
 
@@ -51,9 +54,12 @@ fn time_cmd_posix(mut cmd: Command) -> Result<Timings> {
     let utime = (tms_after.tms_cutime - tms_before.tms_cutime) as f64 / ticks_per_sec;
     let stime = (tms_after.tms_cstime - tms_before.tms_cstime) as f64 / ticks_per_sec;
 
-    Ok(Timings {
-        wall_time: d,
-        user_time: utime,
-        sys_time: stime,
-    })
+    Ok((
+        Timings {
+            wall_time: d,
+            user_time: utime,
+            sys_time: stime,
+        },
+        status,
+    ))
 }
