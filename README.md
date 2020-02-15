@@ -180,3 +180,19 @@ and move on.  The GHC people had a system like this in place for a long time
 but [recently ditched it][GHC] because it was just seen as a nuisanse.
 
 [GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
+
+### Combining results from different benchmarks
+
+The method above involves running a "good macrobenchmark".  Suppose you don't
+have one of those, but you _do_ have lots of good microbenchmarks.  How about
+we take a set of measurements separately for each benchmark and the combine
+them into a single set?  (ie. concatenate the rows of the various csv files.)
+
+Well, this fine, but there's one problem: the distribution of results probably
+won't be very normal - it's likely to be multi-modal.  You _can_ compare these
+lumpy distributions to each other, but you can't use a t-test.  You'll have
+to carefully find an appropriate test, and it will probably be less powerful.
+
+Instead, why not make a macrobenchmark which runs all of the microbenchmarks
+in sequence?  This will take all your microbenchmarks into account, and give
+you a far more gaussian-looking distribution.
