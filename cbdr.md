@@ -2,53 +2,49 @@
 
 This repo contains a suite of tools called `cbdr`.
 
-`cbdr sample` repeatedly selects a program at random from a list and
-benchmarks it.  The output is CSV-formatted.
+`cbdr sample` takes a list of benchmarks in the form `name:program`.
+It randomly selects a benchmark, runs the program, reports the execution
+time, and loops.  The output is CSV-formatted and goes on forever, so lets
+limit it with `head` and format it with `column`.
 
 ```
-$ cbdr sample 'md5sum foo.json' 'sha1sum foo.json' 'sha256sum foo.json' | head | column -s, -t
-Warming up md5sum foo.json...
-Warming up sha1sum foo.json...
-Warming up sha256sum foo.json...
+$ cbdr sample "md5:md5sum $BIG_FILE" "sha1:sha1sum $BIG_FILE" "sha256:sha256sum $BIG_FILE" | head | column -ts,
+Warming up md5...
+Warming up sha1...
+Warming up sha256...
 
-target              sys time  user time  wall time
-sha1sum foo.json    0.01      0.04       0.038843459
-md5sum foo.json     0         0.03       0.035293018
-md5sum foo.json     0         0.03       0.036419416
-md5sum foo.json     0.01      0.03       0.031535277
-sha256sum foo.json  0         0.1        0.099074689
-md5sum foo.json     0         0.02       0.031327095
-md5sum foo.json     0         0.03       0.031426344
-sha256sum foo.json  0         0.09       0.087450079
-md5sum foo.json     0         0.03       0.030244706
+benchmark  sys time  user time  wall time
+md5        0.01      0.12       0.131099686
+sha1       0.03      0.13       0.155063893
+sha256     0.02      0.32       0.344348186
+sha256     0.01      0.32       0.335235973
+md5        0         0.13       0.128056813
+md5        0.01      0.13       0.130115718
+md5        0.02      0.1        0.131369468
+sha1       0         0.15       0.149611563
+md5        0.01      0.12       0.128339435
 ```
 
-`cbdr analyze` summarizes the differences between the benchmarked programs.
+`cbdr analyze` takes the output of `cbdr sample` and summarizes the differences
+between the benchmarks.
 
 ```
 $ cbdr analyze <results.csv
-benchmark           samples  sys time  user time  wall time
-md5sum foo.json     7238     0.003     0.025      0.028
-sha1sum foo.json    7057     0.003     0.031      0.034
-sha256sum foo.json  7200     0.003     0.074      0.077
+           md5            sha1           difference (99.9% CI)
+sys time   0.011 ± 0.007  0.011 ± 0.008  [ -14.7% ..  +17.5%]
+user time  0.116 ± 0.009  0.138 ± 0.009  [ +17.0% ..  +20.6%]
+wall time  0.128 ± 0.006  0.149 ± 0.006  [ +15.9% ..  +18.0%]
+samples    392            410
 
-md5sum foo.json vs sha1sum foo.json:
-
-                      95% CI                99% CI               99.9% CI             99.99% CI
-    sys time   [  -7.4% ..   +3.5%]  [  -9.1% ..   +5.2%]  [ -11.1% ..   +7.2%]  [ -12.7% ..   +8.9%]
-    user time  [ +24.6% ..  +26.2%]  [ +24.4% ..  +26.5%]  [ +24.1% ..  +26.8%]  [ +23.8% ..  +27.0%]
-    wall time  [ +21.9% ..  +22.9%]  [ +21.8% ..  +23.0%]  [ +21.6% ..  +23.2%]  [ +21.5% ..  +23.3%]
-
-sha1sum foo.json vs sha256sum foo.json:
-
-                      95% CI                99% CI               99.9% CI             99.99% CI
-    sys time   [  -0.2% ..  +11.0%]  [  -2.0% ..  +12.8%]  [  -4.1% ..  +14.8%]  [  -5.8% ..  +16.6%]
-    user time  [+136.7% .. +138.3%]  [+136.4% .. +138.6%]  [+136.1% .. +138.9%]  [+135.9% .. +139.1%]
-    wall time  [+125.5% .. +127.0%]  [+125.3% .. +127.2%]  [+125.0% .. +127.4%]  [+124.8% .. +127.7%]
+           sha1           sha256         difference (99.9% CI)
+sys time   0.011 ± 0.008  0.012 ± 0.008  [ -12.0% ..  +20.0%]
+user time  0.138 ± 0.009  0.334 ± 0.013  [+139.6% .. +143.4%]
+wall time  0.149 ± 0.006  0.345 ± 0.011  [+129.8% .. +132.5%]
+samples    410            422
 ```
 
 You can even pipe the output of `cbdr sample` into `cbdr analyze` to see
-the confidence intervals change as they're updated by new data:
+the confidence intervals change live as they're updated by new data.
 
 <img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
 
