@@ -50,16 +50,27 @@ the confidence intervals change live as they're updated by new data.
 
 ## Interpreting the results
 
-Let's look at the table comparing md5 to sha1, and choose a p-value of 99%.
-Looking at the wall-clock time, it indeed looks to be about 22% slower.
-That said, you should avoid the temptation reduce the results to a single
-number.  The statistically responsible way to report this benchmark to your
-colleagues would be like this:
+Let's look at the table comparing md5 to sha1.  Judging by wall-clock time,
+sha1 looks like it's about 17% slower than md5, doesn't it?  So we go ahead
+and tell our colleages:
 
-> sha1sum was 21.8-23% slower than md5sum by wall-clock (p=99%)
+> I benchmarked sha1 against md5 and found that it was 17% slower.
 
-By contrast, looking at the system time, we see that the difference is between
--9.1% and +5.2%.  Because the confidence interval contains 0%, we don't have
-enough evidence to say that the time spent in the kernel is any different.
+Well, that's fine, but it's _much_ better if we report the confidence
+interval instead!
 
-> The difference in system time was within noise (p=99%)
+> By wall-clock time, sha1 was 16-18% slower than md5 (α=99.9%).
+
+Now our colleages have some idea of how good the benchmark was.  Note how
+we also reported the alpha-value.  `cbdr analyze` lets you customize this
+parameter with the `--significance` option, but it defaults to 99.9%.
+
+Now let's compare how much time md5sum and sha1sum spend inside the kernel.
+The difference is somewhere between -15% and +18%.  Not only is this interval
+quite wide (implying a lot of variance), but it also straddles 0%.  This means
+there isn't enough evidence to assert a real difference.
+
+> The difference in system time was within noise (α=99%)
+
+Remember kids: practise statistical responsibility when communicating
+benchmark results!
