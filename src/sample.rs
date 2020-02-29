@@ -4,6 +4,7 @@ use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
+use std::time::Instant;
 use structopt::*;
 use time_cmd::*;
 
@@ -18,6 +19,8 @@ pub struct Options {
     /// If "bench" is not specified, they'll be passed to it as $1; if not,
     /// these will be treated like --script arguments.
     pub targets: Vec<NamedString>,
+    #[structopt(long, short)]
+    pub timeout: Option<humantime::Duration>,
 }
 
 pub struct NamedString(Option<String>, String);
@@ -67,6 +70,7 @@ impl Options {
 }
 
 pub fn sample(opts: Options) -> Result<()> {
+    let timeout = opts.timeout.map(|x| x.into());
     let benches = opts.benchmarks();
     let stats = warm_up(&benches)?;
     let mut stdout = CsvWriter::new(std::io::stdout(), stats.iter())?;
@@ -75,12 +79,16 @@ pub fn sample(opts: Options) -> Result<()> {
         let values = run_bench(bench)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
-    loop {
+
+    let start = timeout.map(|_| Instant::now());
+    let elapsed = || start.map(|s| s.elapsed());
+    while elapsed() <= timeout {
         let idx = rand::random::<usize>() % benches.len();
         let bench = &benches[idx];
         let values = run_bench(bench)?;
         stdout.write_csv(&bench.to_string(), &values)?;
     }
+    Ok(())
 }
 
 struct CsvWriter<T> {
