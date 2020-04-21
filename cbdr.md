@@ -43,29 +43,6 @@ wall_time  0.149 ± 0.006  0.345 ± 0.011  [+129.8% .. +132.5%]
 samples    410            422
 ```
 
-You can even pipe the output of `cbdr sample` into `cbdr analyze` to see
-the confidence intervals change live as they're updated by new data.
-
-```
-$ cbdr sample --timeout=30s [benchmarks] | tee results.csv | cbdr analyze
-```
-
-![](https://github.com/asayers/cbdr/raw/master/demo.gif)
-
-(Note: It's tempting to start a benchmark, watch the results come in, and
-then when you think you've collected enough you hit ctrl-C.  If you do this
-the risk of biasing your results is very high.  Decide your stopping point
-before you start the benchmark!)
-
-`cbdr plot` produces a vega-lite specification for vizualising benchmark
-results.
-
-```
-$ cbdr plot <results.csv | vl2png | feh -
-```
-
-![](https://github.com/asayers/cbdr/raw/master/demo.png)
-
 ## Interpreting the results
 
 Let's look at the table comparing md5 to sha1.  Judging by wall-clock time,
@@ -92,3 +69,30 @@ there isn't enough evidence to assert a real difference.
 
 Remember kids: practise statistical responsibility when communicating
 benchmark results!
+
+## Fancy features
+
+You can pipe the output of `cbdr sample` directly into `cbdr analyze` to
+see the confidence intervals change live as they're updated by new data.
+
+```
+$ cbdr sample --timeout=30s [benchmarks] | tee results.csv | cbdr analyze
+```
+
+![](https://github.com/asayers/cbdr/raw/master/demo.gif)
+
+(Note: It's tempting to start a benchmark, watch the results come in, and
+then when you think you've collected enough you hit ctrl-C.  If you do this
+the risk of biasing your results is very high.  Decide your stopping point
+before you start the benchmark!)
+
+`cbdr plot` produces a vega-lite specification for vizualising benchmark
+results.
+
+```
+$ cbdr plot <results.csv | vl2png | feh -
+```
+
+![](https://github.com/asayers/cbdr/raw/master/demo.png)
+
+This can be useful for getting an idea of how gaussian your results are.
