@@ -3,20 +3,20 @@
 
 Continuous integration has become standard practice, and for good reason:
 if you don't run your tests regularly then it's just a matter of time before
-"semantic regressions" (aka bugs) find their way into master.  Likewise,
-if you don't run your benchmarks regularly then performance regressions
-**will** happen.
+"semantic regressions" (aka bugs) find their way into master.  Likewise, if you
+don't run your benchmarks regularly then performance regressions _will_ happen.
 
 Yet running benchmarks in CI is far less common.  The reason: tests are
 deterministic but benchmarks are not, and this makes it hard to boil them
 down to a pass/fail.  Even "kinda deterministic" proxies such as instruction
 count are quite variable in practice.
 
-There's some number you care about (running time, max RSS, etc.); except
-it's **not** a number but a distribution, and the number you _actually_ care
-about is the mean of that distribution; and the thing you _really actually_
-care about is how much that mean changes when you apply some particular patch.
-(This is known in the business as the [Behrens–Fisher problem].)
+Here's the situation: there's some number you care about (running time,
+max RSS, etc.); except it's _not_ a number but a distribution, and the
+number you _actually_ care about is the mean of that distribution; and the
+thing you _really actually_ care about is how much that mean changes when
+you apply some particular patch.  (This is known in the business as the
+[Behrens–Fisher problem].)
 
 [Behrens–Fisher problem]: https://en.wikipedia.org/wiki/Behrens%E2%80%93Fisher_problem
 
@@ -25,11 +25,10 @@ looking for the `cbdr` tool, look [here](cbdr.md) instead.**
 
 ## An illustative example
 
-For the sake of example, here's the situation: your repo contains a nice
-macro-benchmark called `bench.sh`.  It only takes a second or so to run,
-and it runs all the stuff you care about.  The rule is that if a feature
-branch increases `bench.sh`'s running time by more than 2%, it should be
-blocked from merging.  Here's the method:
+Let's suppose your repo contains a nice macro-benchmark called `bench.sh`.
+It only takes a second or so to run, and it runs all the stuff you care about.
+The rule is that if a feature branch increases `bench.sh`'s running time by
+more than 2%, it should be blocked from merging.  Here's what we do:
 
 1. Check out the feature branch and its merge-base in separate worktrees,
    and build whatever needs building.
