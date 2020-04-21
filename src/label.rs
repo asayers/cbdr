@@ -1,6 +1,7 @@
 use ansi_term::{Color, Style};
 use arc_swap::ArcSwap;
 use once_cell::sync::{Lazy, OnceCell};
+use serde::*;
 use std::fmt;
 
 static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(|| ArcSwap::default());
@@ -39,6 +40,17 @@ impl fmt::Display for Bench {
     }
 }
 
+impl Serialize for Bench {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let cache = BENCH_CACHE.load();
+        let s = &cache[self.0];
+        serializer.serialize_str(s)
+    }
+}
+
 pub fn all_benches() -> impl Iterator<Item = Bench> {
     (0..BENCH_CACHE.load().len()).map(Bench)
 }
@@ -55,6 +67,17 @@ impl fmt::Display for Metric {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let cache = METRIC_CACHE.get().unwrap();
         f.write_str(&cache[self.0])
+    }
+}
+
+impl Serialize for Metric {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let cache = METRIC_CACHE.get().unwrap();
+        let s = &cache[self.0];
+        serializer.serialize_str(s)
     }
 }
 
