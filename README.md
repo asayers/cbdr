@@ -1,23 +1,27 @@
 <p align="center"> <img src="banner.png" /> </p>
 <h1 align="center">Continuous Benchmarking, Done Right</h1>
 
-Continuous integration (which normally means "running the tests on every
-commit") has become standard practise, and for good reason: if you don't
-have good tests and run them regularly, you're bound to allow semantic
-regressions (aka "bugs") into your code.  Continuous benchmarking is likewise
-essential if you don't want to allow performance regressions to happen;
-yet it's far less commonplace.
+Continuous integration has become standard practice, and for good reason:
+if you don't run your tests regularly then it's just a matter of time before
+"semantic regressions" (aka bugs) find their way into master.  Likewise,
+if you don't run your benchmarks regularly then performance regressions
+**will** happen.
 
-This is simply because it's harder: tests are deterministic, whereas benchmarks
-are not.  Even "kinda deterministic" proxies such as instruction count are
-quite variable in practice.  The property you care about (be it wall-time,
-max RSS, or whatever) is not a number but is in fact a distribution, and the
-property you _really_ care about is the mean of that distribution; and the
-thing you _actually really_ care about is how much that mean changes when
-you apply a particular patch.
+Yet running benchmarks in CI is far less common.  The reason: tests are
+deterministic but benchmarks are not, and this makes it hard to boil them
+down to a pass/fail.  Even "kinda deterministic" proxies such as instruction
+count are quite variable in practice.
+
+There's some number you care about (running time, max RSS, etc.); except
+it's **not** a number but a distribution, and the number you _actually_ care
+about is the mean of that distribution; and the thing you _really actually_
+care about is how much that mean changes when you apply some particular patch.
+(This is known in the business as the [Behrens–Fisher problem].)
+
+[Behrens–Fisher problem]: https://en.wikipedia.org/wiki/Behrens%E2%80%93Fisher_problem
 
 This page contains some assorted advice on how to measure this.  **If you're
-looking for the `cbdr` tool, look [here](cbdr.md).**
+looking for the `cbdr` tool, look [here](cbdr.md) instead.**
 
 ## An illustative example
 
