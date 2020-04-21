@@ -19,6 +19,8 @@ pub struct Options {
     /// If "bench" is not specified, they'll be passed to it as $1; if not,
     /// these will be treated like --script arguments.
     pub targets: Vec<NamedString>,
+    /// Automatically exit after this length of time has elapsed.
+    /// Takes free-form input, eg. "1m20s".
     #[structopt(long, short)]
     pub timeout: Option<humantime::Duration>,
 }
