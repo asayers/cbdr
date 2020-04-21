@@ -18,7 +18,7 @@ pub fn time_cmd(cmd: Command) -> Result<(Timings, ExitStatus)> {
     Ok(ret)
 }
 
-#[allow(unused)]
+#[cfg(not(unix))]
 fn time_cmd_fallback(mut cmd: Command) -> Result<(Timings, ExitStatus)> {
     let ts = Instant::now();
     let status = cmd.spawn()?.wait()?;
