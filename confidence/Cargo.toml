@@ -5,7 +5,4 @@ authors = ["Alex Sayers <alex@asayers.com>"]
 edition = "2018"
 
 [dependencies]
-special = "0.8"
-
-[dev-dependencies]
-approx = "0.3"
+statrs = { git = "https://github.com/asayers/statrs.git", branch = "student_invcdf" }
