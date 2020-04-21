@@ -1,5 +1,6 @@
 mod analyze;
 mod label;
+mod plot;
 mod pretty;
 mod sample;
 
@@ -9,6 +10,7 @@ use structopt::StructOpt;
 enum Subcommand {
     Sample(sample::Options),
     Analyze(analyze::Options),
+    Plot(plot::Options),
 }
 
 fn main() {
@@ -19,6 +21,7 @@ fn main() {
     let result = match Subcommand::from_args() {
         Subcommand::Sample(opts) => sample::sample(opts),
         Subcommand::Analyze(opts) => analyze::analyze(opts),
+        Subcommand::Plot(opts) => plot::plot(opts),
     };
     match result {
         Ok(()) => (),
