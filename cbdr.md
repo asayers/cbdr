@@ -70,7 +70,7 @@ The difference is somewhere between -15% and +18%.  Not only is this interval
 quite wide (implying a lot of variance), but it also straddles 0%.  This means
 there isn't enough evidence to assert a real difference.
 
-> The difference in system time was within noise (α=99%)
+> The difference in system time was within noise (α=99.9%)
 
 Remember kids: practise statistical responsibility when communicating
 benchmark results!
