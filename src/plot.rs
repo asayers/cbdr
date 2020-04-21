@@ -10,6 +10,53 @@ use structopt::StructOpt;
 )]
 pub struct Options {}
 
+pub fn mk_chart(metric: Metric) -> serde_json::Value {
+    let metric = metric.to_string();
+
+    // It's a bit hacky, but we special-case any metrics with these well-known
+    // names and optimize their chart.
+    if metric == "user_time" || metric == "sys_time" {
+        json!({
+            "title": metric,
+            "width": 640,
+            "height": 180,
+            "mark": {
+                "type": "area",
+                "interpolate": "monotone",
+                "opacity": 0.5,
+            },
+            "encoding": {
+                "x": { "field": metric, "type": "ordinal" },
+                "y": { "aggregate": "count", "type": "quantitative", "stack":null },
+                "color": { "field": "benchmark", "type": "nominal" },
+            },
+        })
+    } else {
+        json!({
+            "title": metric,
+            "width": 640,
+            "height": 180,
+            "mark": {
+                "type": "area",
+                "opacity": 0.5,
+            },
+            "encoding": {
+                "x": { "field": "value", "type": "quantitative" },
+                "y": { "field": "density", "type": "quantitative" },
+                "color": { "field": "benchmark", "type": "nominal" },
+            },
+            "transform": [
+                {
+                    "density": metric,
+                    "steps": 1000,
+                    "groupby": ["benchmark"],
+                },
+                { "filter": "datum.density > 1" },
+            ],
+        })
+    }
+}
+
 pub fn plot(opts: Options) -> Result<()> {
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
     let mut headers = rdr.headers().unwrap().into_iter();
@@ -31,26 +78,7 @@ pub fn plot(opts: Options) -> Result<()> {
             map
         })
         .collect::<Vec<_>>();
-    let mk_chart = |metric: Metric| {
-        json!({
-            "title": metric,
-            "width": 640,
-            "height": 180,
-            "mark": {
-                "type": "area",
-                "opacity": 0.5,
-            },
-            "encoding": {
-                "x": { "field": "value", "type": "quantitative" },
-                "y": { "field": "density", "type": "quantitative" },
-                "color": { "field": "benchmark", "type": "nominal" },
-            },
-            "transform": [{
-                "density": metric,
-                "groupby": ["benchmark"],
-            }],
-        })
-    };
+
     let mut charts = all_metrics().map(mk_chart).collect::<Vec<_>>();
     charts.reverse();
     let plot = json!({
