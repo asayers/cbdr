@@ -13,7 +13,7 @@ Warming up md5...
 Warming up sha1...
 Warming up sha256...
 
-benchmark  sys time  user time  wall time
+benchmark  sys_time  user_time  wall_time
 md5        0.01      0.12       0.131099686
 sha1       0.03      0.13       0.155063893
 sha256     0.02      0.32       0.344348186
@@ -31,15 +31,15 @@ between the benchmarks.
 ```
 $ cbdr analyze <results.csv
            md5            sha1           difference (99.9% CI)
-sys time   0.011 ± 0.007  0.011 ± 0.008  [ -14.7% ..  +17.5%]
-user time  0.116 ± 0.009  0.138 ± 0.009  [ +17.0% ..  +20.6%]
-wall time  0.128 ± 0.006  0.149 ± 0.006  [ +15.9% ..  +18.0%]
+sys_time   0.011 ± 0.007  0.011 ± 0.008  [ -14.7% ..  +17.5%]
+user_time  0.116 ± 0.009  0.138 ± 0.009  [ +17.0% ..  +20.6%]
+wall_time  0.128 ± 0.006  0.149 ± 0.006  [ +15.9% ..  +18.0%]
 samples    392            410
 
            sha1           sha256         difference (99.9% CI)
-sys time   0.011 ± 0.008  0.012 ± 0.008  [ -12.0% ..  +20.0%]
-user time  0.138 ± 0.009  0.334 ± 0.013  [+139.6% .. +143.4%]
-wall time  0.149 ± 0.006  0.345 ± 0.011  [+129.8% .. +132.5%]
+sys_time   0.011 ± 0.008  0.012 ± 0.008  [ -12.0% ..  +20.0%]
+user_time  0.138 ± 0.009  0.334 ± 0.013  [+139.6% .. +143.4%]
+wall_time  0.149 ± 0.006  0.345 ± 0.011  [+129.8% .. +132.5%]
 samples    410            422
 ```
 

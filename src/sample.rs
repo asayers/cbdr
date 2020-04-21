@@ -164,9 +164,9 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
             if !status.success() {
                 bail!("{}: Benchmark exited non-zero ({})", bench, x);
             }
-            ret.insert("wall time".into(), timings.wall_time.as_secs_f64());
-            ret.insert("user time".into(), timings.user_time);
-            ret.insert("sys time".into(), timings.sys_time);
+            ret.insert("wall_time".into(), timings.wall_time.as_secs_f64());
+            ret.insert("user_time".into(), timings.user_time);
+            ret.insert("sys_time".into(), timings.sys_time);
             Ok(ret)
         }
         BenchRunner::Script(script, args) => {
