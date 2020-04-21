@@ -1,5 +1,9 @@
 # Continuous Benchmarking, Done Right
 
+![](banner.png)
+
+**The `cbdr` tool is [here](cbdr.md)**
+
 Continuous integration (which normally means "running the tests on every
 commit") has become standard practise, and for good reason: if you don't
 have good tests and run them regularly, you're bound to allow semantic
