@@ -1,8 +1,5 @@
-# Continuous Benchmarking, Done Right
-
-![](banner.png)
-
-**The `cbdr` tool is [here](cbdr.md)**
+<p align="center"> <img src="banner.png" /> </p>
+<h1 align="center">Continuous Benchmarking, Done Right</h1>
 
 Continuous integration (which normally means "running the tests on every
 commit") has become standard practise, and for good reason: if you don't
@@ -18,6 +15,9 @@ max RSS, or whatever) is not a number but is in fact a distribution, and the
 property you _really_ care about is the mean of that distribution; and the
 thing you _actually really_ care about is how much that mean changes when
 you apply a particular patch.
+
+This page contains some assorted advice on how to measure this.  **If you're
+looking for the `cbdr` tool, look [here](cbdr.md).**
 
 ## An illustative example
 
