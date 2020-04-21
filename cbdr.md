@@ -50,12 +50,21 @@ the confidence intervals change live as they're updated by new data.
 $ cbdr sample --timeout=30s [benchmarks] | tee results.csv | cbdr analyze
 ```
 
-<img src=https://github.com/asayers/cbdr/raw/master/demo.gif>
+![https://github.com/asayers/cbdr/raw/master/demo.gif]
 
 (Note: It's tempting to start a benchmark, watch the results come in, and
 then when you think you've collected enough you hit ctrl-C.  If you do this
 the risk of biasing your results is very high.  Decide your stopping point
 before you start the benchmark!)
+
+`cbdr plot` produces a vega-lite specification for vizualising benchmark
+results.
+
+```
+$ cbdr plot <results.csv | vl2png | feh -
+```
+
+![https://github.com/asayers/cbdr/raw/master/demo.png]
 
 ## Interpreting the results
 
