@@ -11,17 +11,21 @@ deterministic but benchmarks are not, and this makes it hard to boil them
 down to a pass/fail.  Even "kinda deterministic" proxies such as instruction
 count are quite variable in practice.
 
-Here's the situation: there's some number you care about (running time,
-max RSS, etc.); except it's _not_ a number but a distribution, and the
-number you _actually_ care about is the mean of that distribution; and the
-thing you _really actually_ care about is how much that mean changes when
-you apply some particular patch.  (This is known in the business as the
-[Behrens–Fisher problem].)
+Here's the situation:
+
+* there's some number you care about: running time, max RSS, etc.;
+* except it's _not_ really a number - it's a distribution - and the number
+  you _actually_ care about is the mean of that distribution;
+* and the thing you _actually actually_ care about is not the mean per-se,
+  but how much it changes when you apply some particular patch.
+
+Our challenge is to estimate the change in the mean by sampling repeatedly
+from these two distributions.  (This is known in the business as the
+[Behrens–Fisher problem].)  This page contains some assorted advice on how
+to do this.  **If you're looking for `cbdr`, a tool which automates some of
+this advice, look [here](cbdr.md) instead.**
 
 [Behrens–Fisher problem]: https://en.wikipedia.org/wiki/Behrens%E2%80%93Fisher_problem
-
-This page contains some assorted advice on how to measure this.  **If you're
-looking for the `cbdr` tool, look [here](cbdr.md) instead.**
 
 ## An illustative example
 
@@ -63,36 +67,56 @@ If you want to implement something like this yourself, this repo contains a
 
 ### Benchmarking commit A, then benchmarking commit B
 
-Taking all measurements for one commit in a single session is tempting,
-because it allows you to build the necessary artefacts, benchmark them, and
-then delete them before moving on the next commit.  It has two disadvantages:
+Most benchmarking software I see takes a bunch of measurements of the first
+thing, then a bunch of measurements of the second thing, then performs some
+analysis on the two samples.  I suggest that you don't do this; instead,
+randomly pick one of your commits to measure each time you do a run.
+This has two advantages:
 
-* You can't dynamically increase the number of samples based on the CI of
-  the diff.  (You could take samples until the CI of the mean for the commit
-  is small, but in the end you might find that the CI for the diff is still
-  too wide.)
-* Noise which fluctuates at the second- or minute-scale becomes correlated
-  with commits.  Such sources of noise are very common in benchmarking rigs.
-  Eg. imaging a cron jobs starts just as you start benchmarking commit B;
-  the penalty is absorbed entirely by commit B.  If you randomize the
-  measurements then the penalty will be even spread across both commits.
+* If results are correlated with time, then they're correlated with
+  time-varying noise.  Imagine you finish benchmarking commit A on a quiet
+  machine, but then a cron jobs starts just as you start benchmarking commit B;
+  the penalty is absorbed entirely by commit B!  This applies to intermittent
+  noise which varies at the second- or minute-scale, which is very common
+  in benchmarking rigs.
+
+  On the other hand, if you randomize the measurements then the penalty of
+  the cron job in the example above will be even spread across both commits.
+  It will hurt the precision of your results, but not the accuracy.
+* You can dynamically increase the number of samples until you achieve a
+  desired presicion.  After each sample you look at how wide the confidence
+  interval of the mean-difference is, and if it's too wide you take another
+  measurement.
+
+  If you perform the measurements in order, then at the time you decide to
+  move on from commit A to commit B, you only have access to the confidence
+  interval of the mean for commit A at the start, not the mean-difference.
+  Just because you have a precice estimate of the mean for commit A, it
+  doesn't mean you're going to have enough data for a precice estimate of
+  the mean-difference.
+
+I get it: you want to build commit A, benchmark it, then build commit B in
+the same checkout (replacing the artifacts from commit A).  Just save the
+artifacts somewhere.  I use $HOME/.cache/$PROJECT_bench/$SHORTREV.
 
 ### Saving old benchmark results for later use
 
 This is just a more extreme version of "benchmarking commit A, then
-benchmarking commit B", except now your results are correlated with sources
-of noise which vary at the day- or month-scale.  Is your cooling good enough
-to ensure that results taken in the summer are comparable with results taken
-in the winter?  (Ours isn't.)
+benchmarking commit B", except now your results are correlated with sources of
+noise which vary at the day- or month-scale.  Is your cooling good enough to
+ensure that results taken in the summer are comparable with results taken in
+the winter?  (Ours isn't.)  Did you upgrade any hardware between now and then?
+How about software?
 
-#### But... I don't want to re-benchmark old commits!
+In addition to improving the quality of your data, freshly benchmarking the
+base means your CI runs are now (1) stateless and (2) machine-independent.
+If you want to reuse old results, you need to maintain a database and a
+dedicated benchmarking machine.  If you re-bench the base, you can use any
+available CI machine and all it needs is your code.
 
-Freshly benchmarking the base gives a number of advantages (in addition to
-improving the resulting data, as explained above): your CI runs are now (1)
-stateless and (2) machine-independent.  If you want to reuse old results,
-you need to maintain a database and a dedicated benchmarking machine.
-The downside of re-benchmarking is that your CI machines will spend - at most -
-2x longer on benchmarking.  Is that a resource you really need to claw back?
+Re-benchmarking old commits feels like a waste of CPU-time; but your CI
+machines will spend - at most - 2x longer on benchmarking.  Is that _really_
+a resource you need to claw back?
 
 ### Plotting the means and eyeballing the difference
 
@@ -156,15 +180,21 @@ you're going to have to widen the confidence intervals as mentioned above
 (or suffer many false-positives), and it could take a really long time for
 them to converge (if they ever converge enough at all).
 
-In general, the tools used for performance _validation_ ("did it get
-slower?") are not the same as the tools used for performance _profiling_
-("which bit got slower?").  For the latter, [perf] ([see also]), [heap
-profiling], [causal profiling], regression-based [micro-benchmarks], and
-[flame graphs] are you friends.  But you don't need any of that fanciness to
-validate overall performance - just one good macro-benchmark and a stopwatch.
+#### Aside: regression checking != profiling
+
+* Performance _validation_ answers the question: "did it get slower?"
+* Performance _profiling_ answers the question: "which bit got slower?"
+
+These are not the same problem and require the use of different tools.
+You wouldn't try to use gdb and rr to run your CI tests, would you?
+
+* When profiling, [perf] ([examples]), [heap profiling], [causal profiling],
+  regression-based [micro-benchmarks], and [flame graphs] are your friends.
+* When validating overall performance you just need one good macro-benchmark
+  and a stopwatch.
 
 [perf]: https://perf.wiki.kernel.org/
-[see also]: http://www.brendangregg.com/perf.html
+[examples]: http://www.brendangregg.com/perf.html
 [heap profiling]: https://github.com/KDE/heaptrack
 [causal profiling]: https://github.com/plasma-umass/coz
 [micro-benchmarks]: http://www.serpentine.com/criterion/
@@ -195,10 +225,11 @@ have one of those, but you _do_ have lots of good microbenchmarks.  How about
 we take a set of measurements separately for each benchmark and the combine
 them into a single set?  (ie. concatenate the rows of the various csv files.)
 
-Well, this fine, but there's one problem: the distribution of results probably
-won't be very normal - it's likely to be multi-modal.  You _can_ compare these
-lumpy distributions to each other, but you can't use a t-test.  You'll have
-to carefully find an appropriate test, and it will probably be less powerful.
+There's a problem with this: the distribution of results probably won't be
+very normal; in fact it's likely to be highly multi-modal (aka. lumpy).
+You _can_ compare these lumpy distributions to each other, but not with
+a t-test.  You'll have to carefully find an appropriate test (probably a
+non-parametric one), and it will probably be a lot less powerful.
 
 Instead, why not make a macrobenchmark which runs all of the microbenchmarks
 in sequence?  This will take all your microbenchmarks into account, and give
