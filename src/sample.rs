@@ -23,8 +23,15 @@ pub struct Options {
     /// Takes free-form input, eg. "1m20s".
     #[structopt(long, short)]
     pub timeout: Option<humantime::Duration>,
+    /// A target labeled "before".  "--before=foo" is equivalent to "before:foo".
+    #[structopt(long)]
+    pub before: Option<String>,
+    /// A target labeled "after".  "--after=foo" is equivalent to "after:foo".
+    #[structopt(long)]
+    pub after: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct NamedString(Option<String>, String);
 impl FromStr for NamedString {
     type Err = String;
@@ -39,33 +46,41 @@ impl FromStr for NamedString {
 }
 
 impl Options {
+    fn targets(&self) -> impl Iterator<Item = NamedString> + '_ {
+        self.targets
+            .iter()
+            .cloned()
+            .chain(
+                self.before
+                    .as_ref()
+                    .map(|rest| NamedString(Some("before".into()), rest.clone())),
+            )
+            .chain(
+                self.after
+                    .as_ref()
+                    .map(|rest| NamedString(Some("after".into()), rest.clone())),
+            )
+    }
     fn benchmarks(self) -> Vec<Benchmark> {
         let mut benches = self
             .scripts
-            .into_iter()
+            .iter()
+            .cloned()
             .map(|NamedString(name, rest)| Benchmark {
                 name,
                 runner: BenchRunner::Script(rest, vec![]),
             })
             .collect::<Vec<_>>();
-        if let Some(bench) = self.bench {
-            benches.extend(
-                self.targets
-                    .into_iter()
-                    .map(|NamedString(name, rest)| Benchmark {
-                        name,
-                        runner: BenchRunner::Script(bench.clone(), vec![rest]),
-                    }),
-            );
+        if let Some(bench) = self.bench.as_ref() {
+            benches.extend(self.targets().map(|NamedString(name, rest)| Benchmark {
+                name,
+                runner: BenchRunner::Script(bench.clone(), vec![rest]),
+            }));
         } else {
-            benches.extend(
-                self.targets
-                    .into_iter()
-                    .map(|NamedString(name, rest)| Benchmark {
-                        name,
-                        runner: BenchRunner::Prog(rest),
-                    }),
-            );
+            benches.extend(self.targets().map(|NamedString(name, rest)| Benchmark {
+                name,
+                runner: BenchRunner::Prog(rest),
+            }));
         }
         benches
     }
