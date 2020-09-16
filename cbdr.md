@@ -1,6 +1,10 @@
 # CBDR
 
-This repo contains a suite of tools called `cbdr`.
+This repo contains a suite of tools called `cbdr`.  You can install it like so:
+
+```
+cargo install --git=https://github.com/asayers/cbdr.git
+```
 
 `cbdr sample` takes a list of benchmarks in the form `name:program`.
 It randomly selects a benchmark, runs the program, reports the execution
