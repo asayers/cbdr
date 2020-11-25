@@ -34,34 +34,31 @@ looking for `cbdr`, a tool which automates some of this advice, look
 
 # The method
 
-Let's suppose your repo contains a nice macro-benchmark called `bench.sh`.
-It only takes a second or so to run, and it runs all the stuff you care about,
-in roughly the right proportion.  Great.
-
-The rule (let's say) is that if a feature branch increases `bench.sh`'s
-running time by more than 2%, it should show up as a CI warning.  Here's what
-the CI job does:
+Let's suppose your repo contains a nice macro-benchmark called `bench.sh`. It
+only takes a second or so to run, and it runs all the stuff you care about, in
+roughly the right proportion.  Let's also suppose that we want to see a CI
+warning if a feature branch increases `bench.sh`'s running time by more than 2%.
+Here's what the CI job does:
 
 1. Check out the feature branch and its merge-base in separate worktrees -
    we'll call them "master" and "feature" - and build whatever needs building.
 2. Flip a coin.
-    * If heads, run master/bench.sh
-    * If tails, run feature/bench.sh
+    * If heads, run `master/bench.sh`
+    * If tails, run `feature/bench.sh`
+
    Record the time it takes to run and add it to the set of measurements.
 3. Using Welch's t-test, compute a one-tailed [confidence interval] for the
-   difference of the means.  The choice of α determines how many
-   false-positive CI runs you're going to get, but note that a choosing higher
-   confidence level means the confidence interval will shrink more slowly.
-4. Look at the confidence interval as a percentage of the mean running time
-   of the merge-base.
-    * Is the upper bound less than +2%?  If so, you're good to merge!
-    * Is the lower bound greater than +2%?  If so, it looks like there's
-      a regression.
-    * Otherwise, the confidence interval is too wide and you need more data:
-      go back to step 2.
-    * You may also want to include a time-limit.  Once it's reached, just
-      check that the lower bound is above +2%.  If it is, there's no evidence
-      of a regression, and it's probably safe to merge.
+   difference of the means.
+4. Divide the confidence interval by the master's mean running time to get a
+   percentage.
+    * The upper bound is below +2% → You're good to merge!
+    * The lower bound is above +2% → It looks like there's a regression.
+    * The interval contains +2% → The confidence interval is too wide and you
+      need more data: go to step 2.
+
+You may also want to include a time-limit.  Once it's reached, just check that
+the lower bound is above +2%.  If it is, there's no evidence of a regression,
+and it's probably safe to merge.
 
 The above is just an example but hopefully you get the idea.  You can vary
 the details; for instance, why not measure max RSS instead of running time?
@@ -263,6 +260,14 @@ If your benchmark gives timings which are not at all normally-distributed
 (and you don't feel like changing your benchmark), non-parametric tests
 do exist.  They're far less powerful than a t-test, though, so it'll take
 much longer for your confidence intervals to shrink.
+
+## Choosing α
+
+The choice of α determines how many false-positive CI runs you're going to get.
+Choosing a higher confidence level means you'll get fewer false alarms, but it
+also means that the confidence interval will take longer to shrink.  This could
+just mean that your CI runs take longer; it could mean that they _never_ reach
+the required tightness.
 
 ## What about measuring instruction count?
 
