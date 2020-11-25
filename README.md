@@ -48,7 +48,7 @@ Here's what the CI job does:
 
    Record the time it takes to run and add it to the set of measurements.
 3. Using Welch's t-test, compute a one-tailed [confidence interval] for the
-   difference of the means.
+   difference of the means.  (See [Choosing α] below.)
 4. Divide the confidence interval by the master's mean running time to get a
    percentage.
     * The upper bound is below +2% → You're good to merge!
@@ -56,19 +56,24 @@ Here's what the CI job does:
     * The interval contains +2% → The confidence interval is too wide and you
       need more data: go to step 2.
 
+[Choosing α]: #choosing-α
+
+The above is just an example but hopefully you get the idea.  You can vary the
+details; for instance, why not measure max RSS as well as running time? (But see
+[Checking too many variables] below.)
+
+[Checking too many variables]: #-checking-too-many-variables
+
 You may also want to include a time-limit.  Once it's reached, just check that
 the lower bound is above +2%.  If it is, there's no evidence of a regression,
 and it's probably safe to merge.
 
-The above is just an example but hopefully you get the idea.  You can vary
-the details; for instance, why not measure max RSS instead of running time?
-Or measure max RSS _as well_ as running time (but see "Comparing multiple
-values" below)?
-
 Implementing step 2 is easy: `time --format=%e --append --output=measurements`
-has you covered - it's not the most precice thing in the world but probably Good
-Enough. For the t-test you could use julia or python; alternatively, this repo
-contains a [tool to help you do it](cbdr.md).
+has you covered - it's not the most precice thing in the world but it's probably
+good enough.
+
+For the t-test you could use julia or python; alternatively, this repo contains
+a [tool to help you do it](cbdr.md).
 
 [confidence interval]: https://en.wikipedia.org/wiki/Welch%27s_t-test
 
