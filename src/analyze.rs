@@ -1,5 +1,5 @@
 use crate::label::*;
-use crate::pretty;
+use crate::{pretty, term_paint};
 use anyhow::*;
 use log::*;
 use std::time::*;

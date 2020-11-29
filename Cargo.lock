@@ -147,7 +147,7 @@ dependencies = [
  "serde_json",
  "structopt",
  "tabwriter",
- "term_paint",
+ "term",
  "time_cmd",
 ]
 
@@ -701,14 +701,6 @@ checksum = "c0863a3345e70f61d613eab32ee046ccd1bcc5f9105fe402c61fcd0c13eeb8b5"
 dependencies = [
  "dirs",
  "winapi",
-]
-
-[[package]]
-name = "term_paint"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "term",
 ]
 
 [[package]]
