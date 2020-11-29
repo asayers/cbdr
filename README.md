@@ -280,9 +280,40 @@ the required tightness.
 ## What about measuring instruction count?
 
 Some people measure "kinda deterministic" proxies such as instructions or
-CPU cycles instead of wall time.  In my experience, these do indeed have
-less variance than wall time, but it's far from zero.  Furthermore, they're
-less well-correlated with wall time than you might expect.  That said, if
-variance is a real problem for you (ie. your confidence intervals are taking
-a long time to shrink) then you could try switching to instruction count.
-Just be aware that you're no longer quite measuring the thing you care about.
+CPU cycles instead of wall time.  In an earlier version of this document
+I claimed that these measures still have a fair amount of variance, and
+recommended sticking with wall-time.
+
+That's still my recommendation, but it's worth pointing to some [recent
+work][measureme PR] by the rustc people which shows that it's _possible_
+to get the variance down almost all the way to zero.  It's very impressive
+stuff, and the [writeup on the project][measureme writeup] is a good read.
+If you really want to try this yourself, then the tl;dr is that you need to:
+
+* [ ] Disable ASLR
+* [ ] Count instructions which retire in userspace (ie. ring 3)
+* [ ] Subtract the number of timer-based hardware interrupts
+
+(This advice is Linux-specific, and you'll also need a CPU with the necessary
+counters.)  Oh, I forgot one:
+
+* [ ] Make sure your software's control flow is deterministic
+
+This last one is the catch.  "Deterministic control flow" means that you're
+allowed to _look_ at the clock, /dev/urandom, etc... but you're not allowed
+to _branch_ on those things.  This is a **very** hard pill to swallow, much
+harder than "simply" producing deterministic output.  The rustc team have
+gone to lengths to ensure that (single-threaded) rustc has this property.
+For example, at some point rustc prints its own PID, and the formatting code
+branches based on the number of digits in the PID.  This was a measureable
+source of variance and had to be fixed.  Yikes!
+
+Ask yourself: are you ready to commit to this level of rigour?  The runtime is
+included too, so you're also committing to no garbage collector, and no fancy
+allocator.  It probably means no threads as well.  If you're not willing to
+go _all the way_ then IMO there's not much point in using instruction count.
+It's a PITA compared to just measuring wall-time, and not worth if your
+variance is dominated by other things.
+
+[measureme PR]: https://github.com/rust-lang/measureme/pull/143
+[measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
