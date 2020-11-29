@@ -1,3 +1,5 @@
+//! Time how long a process takes to run
+
 use std::io::Result;
 use std::process::{Command, ExitStatus};
 use std::time::{Duration, Instant};
@@ -9,7 +11,12 @@ pub struct Timings {
     pub sys_time: f64,
 }
 
-/// The user must ensure that no other child processes are running.
+/// Spawns the given command and times how long it takes to exit.
+///
+/// The user must ensure that no other child processes are running at the
+/// same time, or else the times will be added.
+///
+/// On Windows the `user_time` and `sys_time` fields will be NaN.
 pub fn time_cmd(cmd: Command) -> Result<(Timings, ExitStatus)> {
     #[cfg(unix)]
     let ret = time_cmd_posix(cmd)?;
