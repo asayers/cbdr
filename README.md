@@ -134,21 +134,24 @@ Re-benchmarking old commits feels like a waste of CPU-time; but your CI
 machines will spend - at most - 2x longer on benchmarking.  Is that _really_
 a resource you need to claw back?
 
-### ❌ Checking-in benchmark thresholds
+### ⚠ Checking-in benchmark thresholds
 
-Some projects keep benchmark thresholds checked in to their repo, and fail in
-CI when those thresholds are exceeded.  I've already argued against storing
-previous benchmark results, but you _might_ consider checking in a certain
-old version of your code to compare your benchmark against.  For instance,
-you might have a file containing a revision number; CI benchmarks against
-that revision; if HEAD is slower, CI fails.  If you're OK with the performance
-of HEAD, you put a newer (slower) revision in the file and the CI passes.
+Some projects keep benchmark thresholds checked in to their repo, and fail
+in CI when those thresholds are exceeded.  If the slowdown is expected,
+you update the thresholds in the same PR.  The idea is that it allows you
+to detect slow, long-term performance creep.  It's a nice idea.
 
-This has the advantage that it allows you to detect slow long-term performance
-creep.  However, this kind of creep is very rarely actionable.  In practice,
-since the failing commit isn't _really_ to blame, you just update the threshold
-and move on.  The GHC people had a system like this in place for a long time
-but [recently ditched it][GHC] because it was just seen as a nuisanse.
+I've already argued against storing old benchmark results generally, but we
+can fix that: instead of checking in results, we could check in a reference
+to some old version of the code to benchmark against.
+
+This scheme does indeed allow you to detect performance creep.  However,
+this kind of creep is very rarely actionable.  Usually the failing commit
+isn't _really_ to blame - it's just the straw that broke the camel's back -
+so in practice you just update the threshold and move on.  Once this becomes
+a habit, your benchmarks are useless.  The GHC people had a system like this
+in place for a long time but [recently ditched it][GHC] because it was just
+seen as a nuisance.
 
 [GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
 
