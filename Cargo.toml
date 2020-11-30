@@ -11,7 +11,7 @@ repository = "https://github.com/asayers/cbdr"
 [dependencies]
 ansi_term = "0.12"
 anyhow = "1.0"
-arc-swap = "0.4"
+arc-swap = "1.0"
 behrens-fisher = { path = "behrens-fisher" }
 csv = "1.1"
 env_logger = "0.7"
