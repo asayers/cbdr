@@ -49,7 +49,36 @@ wall_time  0.149 ± 0.006  0.345 ± 0.011  [+129.8% .. +132.5%]
 samples    410            422
 ```
 
-## Interpreting the results
+## Understanding the output
+
+Let's take a look at this line:
+
+```
+           md5            sha1           difference (99.9% CI)
+wall_time  0.128 ± 0.006  0.149 ± 0.006  [ +15.9% ..  +18.0%]
+```
+
+So, we have a set of wall-time measurements for "md5" (let's call the set
+`X`) and a set of wall-time measurements for "sha1" (let's call it `Y`).
+
+First we get the summary statistics for those sets:
+
+* `mean(X) = 0.128 secs` and `std_dev(X) = 0.006 secs`
+* `mean(Y) = 0.149 secs` and `std_dev(Y) = 0.006 secs`
+
+Then we get an estimate of the difference in the means
+
+* `confidence_interval[mean(Y) - mean(X)] = [+0.02035 secs, +0.02304 secs]`
+
+But it's expressed as a percentage of the first mean:
+
+* `confidence_interval[mean(Y) - mean(X)] / mean(X) = [+0.159, +0.18]
+
+So you can understand the "[+15.9% .. +18.0%]" as meaning this: if you know
+how long md5 takes to run on average, then to get sha1's average running time
+you need to add on an extra x%, where x is somewhere between 15.9% and 18%.
+
+## Communicating the results
 
 Let's look at the table comparing md5 to sha1.  Judging by wall-clock time,
 sha1 looks like it's about 17% slower than md5, doesn't it?  So we go ahead
