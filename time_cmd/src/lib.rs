@@ -1,4 +1,26 @@
-//! Time how long a process takes to run
+/*!
+Time how long a process takes to run
+
+## Example
+
+```
+use std::{process::Command, time::Duration};
+use time_cmd::*;
+
+match time_cmd(Command::new("ls")) {
+    Err(_) => panic!("IO error - failed to run ls"),
+    Ok((timings, code)) => {
+        if !code.success() {
+            panic!("ls ran but exited non-zero");
+        }
+        if timings.wall_time > Duration::from_secs(1) {
+            panic!("That's a slow ls!");
+        }
+    }
+}
+```
+
+*/
 
 use std::io::Result;
 use std::process::{Command, ExitStatus};
