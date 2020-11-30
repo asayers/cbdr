@@ -80,7 +80,7 @@ You can pipe the output of `cbdr sample` directly into `cbdr analyze` to
 see the confidence intervals change live as they're updated by new data.
 
 ```
-$ cbdr sample --timeout=30s [benchmarks] | tee results.csv | cbdr analyze
+$ cbdr sample --timeout=30s [benchmarks] | cbdr analyze
 ```
 
 ![](https://github.com/asayers/cbdr/raw/master/demo.gif)
@@ -100,3 +100,43 @@ $ cbdr plot <results.csv | vl2png | feh -
 ![](https://github.com/asayers/cbdr/raw/master/demo.png)
 
 This can be useful for getting an idea of how gaussian your results are.
+
+## Custom measurements
+
+`cbdr` can make use of custom measurement scripts.  For instance, there's one
+in bench_helpers/ which calls out to "perf stat" to get some fancier metrics:
+
+```
+./bench_helpers/perf-bench.sh 'git ls-files'
+{
+    "task_clock": 4.90,
+    "cpu_utilization": 0.600,
+    "context_switches": 1,
+    "cpu_migrations": 0,
+    "page_faults": 164,
+    "cycles": 3875762,
+    "instructions": 3859594,
+    "branches": 881081,
+    "branch_misses": 19461
+}
+```
+
+You can tell `cbdr` to use such a script with the `-b` flag:
+
+```
+% cbdr sample -b bench_helpers/perf-bench.sh find 'git ls-files' | cbdr analyze
+Warming up find...
+Warming up git ls-files...
+
+                  find                       git ls-files              difference (99.9% CI)
+branch_misses     126177.219 ± 4491.457      18969.948 ± 309.242       [ -85.3% ..  -84.6%]
+branches          7124422.062 ± 10084.975    880096.793 ± 4663.410     [ -87.7% ..  -87.6%]
+context_switches  1.096 ± 1.557              0.117 ± 0.356             [-103.3% ..  -75.4%]
+cpu_migrations    0.003 ± 0.058              0.000 ± 0.000             [   NaN% ..    NaN%]
+cpu_utilization   0.947 ± 0.010              0.654 ± 0.022             [ -31.2% ..  -30.7%]
+cycles            44041299.653 ± 979069.887  4108837.580 ± 190263.302  [ -90.9% ..  -90.5%]
+instructions      36138254.480 ± 59172.510   3854234.597 ± 24108.835   [ -89.4% ..  -89.3%]
+page_faults       146.617 ± 2.193            164.714 ± 1.883           [ +12.2% ..  +12.5%]
+task_clock        14.901 ± 3.714             1.434 ± 0.560             [ -92.8% ..  -88.0%]
+samples           1189                       1268
+```
