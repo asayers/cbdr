@@ -17,8 +17,8 @@ pub struct Options {
     /// These benchmarks will be run in a shell and their output will be used to compute stats
     #[structopt(long, short)]
     pub scripts: Vec<NamedString>,
-    /// If "bench" is not specified, they'll be passed to it as $1; if not,
-    /// these will be treated like --script arguments.
+    /// If a script is given as --bench, these will be passed to it as $1;
+    /// if not, these will be treated like --script arguments.
     pub targets: Vec<NamedString>,
     /// Automatically exit after this length of time has elapsed.
     /// Takes free-form input, eg. "1m20s".
