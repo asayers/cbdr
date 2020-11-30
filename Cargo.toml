@@ -14,7 +14,7 @@ anyhow = "1.0"
 arc-swap = "1.0"
 behrens-fisher = { path = "behrens-fisher" }
 csv = "1.1"
-env_logger = "0.7"
+env_logger = "0.8"
 humantime = "2.0"
 log = "0.4"
 once_cell = "1.2"
