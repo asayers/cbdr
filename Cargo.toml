@@ -12,7 +12,7 @@ repository = "https://github.com/asayers/cbdr"
 ansi_term = "0.12"
 anyhow = "1.0"
 arc-swap = "0.4"
-confidence = { path = "confidence" }
+behrens-fisher = { path = "behrens-fisher" }
 csv = "1.1"
 env_logger = "0.7"
 humantime = "2.0"
@@ -30,4 +30,4 @@ time_cmd = { path = "time_cmd" }
 debug = true
 
 [workspace]
-members = ["confidence", "time_cmd"]
+members = ["behrens-fisher", "time_cmd"]

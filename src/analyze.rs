@@ -121,7 +121,7 @@ pub fn analyze(opts: Options) -> Result<()> {
 }
 
 pub struct Measurements {
-    msmts: Vec<confidence::StatsBuilder>,
+    msmts: Vec<behrens_fisher::StatsBuilder>,
     stride: usize, // a global constant, cached here for speed
 }
 
@@ -135,7 +135,7 @@ impl Default for Measurements {
 }
 
 impl Measurements {
-    pub fn bench_stats(&self, bench: Bench) -> &[confidence::StatsBuilder] {
+    pub fn bench_stats(&self, bench: Bench) -> &[behrens_fisher::StatsBuilder] {
         &self.msmts[bench.0 * self.stride..(bench.0 + 1) * self.stride]
     }
 
@@ -144,7 +144,7 @@ impl Measurements {
         let end = self.stride * (bench.0 + 1);
         if self.msmts.len() < end {
             self.msmts
-                .resize_with(end, confidence::StatsBuilder::default);
+                .resize_with(end, behrens_fisher::StatsBuilder::default);
         }
         for (stats, msmt) in self.msmts[start..end].iter_mut().zip(new_measurements) {
             stats.update(msmt);
@@ -162,13 +162,13 @@ impl Measurements {
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
-pub struct DiffCI(pub confidence::Stats, pub confidence::Stats);
+pub struct DiffCI(pub behrens_fisher::Stats, pub behrens_fisher::Stats);
 impl DiffCI {
     /// The confidence interval for the difference of the means, given as
     /// a percentage of the first mean.
     pub fn interval(self, sig_level: f64) -> (f64, f64) {
         let width =
-            confidence::confidence_interval(sig_level, self.0, self.1).unwrap_or(std::f64::NAN);
+            behrens_fisher::confidence_interval(sig_level, self.0, self.1).unwrap_or(std::f64::NAN);
         let delta = self.1.mean - self.0.mean;
         let left = 100. * (delta - width) / self.0.mean;
         let right = 100. * (delta + width) / self.0.mean;

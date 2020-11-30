@@ -1,5 +1,5 @@
 [package]
-name = "confidence"
+name = "behrens-fisher"
 version = "0.1.0"
 authors = ["Alex Sayers <alex@asayers.com>"]
 edition = "2018"
