@@ -89,6 +89,10 @@ impl Options {
 pub fn sample(opts: Options) -> Result<()> {
     let timeout = opts.timeout.map(|x| x.into());
     let benches = opts.benchmarks();
+    if benches.is_empty() {
+        bail!("Must specify at least one benchmark");
+    }
+
     let stats = warm_up(&benches)?;
     let mut stdout = CsvWriter::new(std::io::stdout(), stats.iter())?;
     // Run the benches in-order once, so `cbdr analyze` knows the correct order
