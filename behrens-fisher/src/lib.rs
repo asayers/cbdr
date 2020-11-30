@@ -1,4 +1,12 @@
-/*! A crate for testing whether the means of two distributions are the same.
+/*!
+A crate for testing whether the means of two Normal distributions are the same.
+
+This crate implements [Welch's t-test], an approximate solution to the
+[Behrens-Fisher problem].  The results are presented in the form of a
+confidence interval.
+
+[Welch's t-test]: https://en.wikipedia.org/wiki/Welch%27s_t-test
+[Behrens-Fisher problem]: https://en.wikipedia.org/wiki/Behrens%E2%80%93Fisher_problem
 
 ## Example
 
