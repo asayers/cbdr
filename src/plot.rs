@@ -4,10 +4,8 @@ use log::*;
 use serde_json::json;
 use structopt::StructOpt;
 
+/// Takes CSV data on stdin and produces a vega-lite plot specification on stdout
 #[derive(StructOpt)]
-#[structopt(
-    about = "Takes CSV data on stdin and produces a vega-lite plot specification on stdout"
-)]
 pub struct Options {
     #[structopt(long)]
     omit_data: bool,

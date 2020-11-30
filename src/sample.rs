@@ -8,6 +8,7 @@ use std::time::Instant;
 use structopt::*;
 use time_cmd::*;
 
+/// Repeatedly runs benchmarks chosen at random and prints results as CSV
 #[derive(StructOpt)]
 pub struct Options {
     /// A benchmark script to use.  Labels will be passed as $1
