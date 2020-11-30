@@ -24,10 +24,10 @@ serde_json = "1.0"
 structopt = "0.3"
 tabwriter = { version = "1.1", features = ["ansi_formatting"] }
 term = "0.6"
-time_cmd = { path = "time_cmd" }
+time-cmd = { path = "time-cmd" }
 
 [profile.release]
 debug = true
 
 [workspace]
-members = ["behrens-fisher", "time_cmd"]
+members = ["behrens-fisher", "time-cmd"]

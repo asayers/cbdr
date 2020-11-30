@@ -145,7 +145,7 @@ dependencies = [
  "structopt",
  "tabwriter",
  "term",
- "time_cmd",
+ "time-cmd",
 ]
 
 [[package]]
@@ -598,7 +598,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "time_cmd"
+name = "time-cmd"
 version = "0.1.0"
 dependencies = [
  "libc",

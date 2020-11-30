@@ -1,5 +1,5 @@
 [package]
-name = "time_cmd"
+name = "time-cmd"
 description = "Time how long a process takes to run"
 version = "0.1.0"
 authors = ["Alex Sayers <alex@asayers.com>"]
