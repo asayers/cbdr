@@ -27,8 +27,8 @@ assert_eq!(msg, "Δ = +4.50 ± 3.89 (p=95%)");
 */
 
 mod stats;
+pub mod student_t;
 
-use statrs::distribution::{InverseCDF, StudentsT};
 pub use stats::*;
 
 /// A confidence interval for `y.mean - x.mean`.  This function returns the
@@ -81,8 +81,7 @@ pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Result<f64, Er
     // Compute the critical value at the chosen confidence level
     assert!(p.is_normal());
     assert!(v.is_normal());
-    let dist = StudentsT::new(0., 1., v).unwrap();
-    let t = dist.inverse_cdf(p);
+    let t = student_t::inv_cdf(p, v);
 
     let radius = t * var_delta.sqrt();
     Ok(radius)
