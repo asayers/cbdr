@@ -12,4 +12,4 @@ repository = "https://github.com/asayers/cbdr"
 special = "0.8"
 
 [dev-dependencies]
-approx = "0.3"
+approx = "0.4"
