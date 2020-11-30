@@ -34,15 +34,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf8dcb5b4bbaa28653b647d8c77bd4ed40183b48882e130c1f1ffb73de069fd7"
 
 [[package]]
-name = "approx"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "arc-swap"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -86,8 +77,9 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 [[package]]
 name = "behrens-fisher"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "477bc69bfb974179750727857902566a2c83a692d0e7515fbb9deaca30c90820"
 dependencies = [
- "approx",
  "special",
 ]
 
@@ -315,15 +307,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "num-traits"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "once_cell"
@@ -600,6 +583,8 @@ dependencies = [
 [[package]]
 name = "time-cmd"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cd1876dfef00e0b4939bb0d73dc5fbc3018abbf496569174ce52a9dd3bc6173"
 dependencies = [
  "libc",
 ]
