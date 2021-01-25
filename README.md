@@ -288,32 +288,34 @@ That's still my recommendation, but it's worth pointing to some [recent
 work][measureme PR] by the rustc people which shows that it's _possible_
 to get the variance down almost all the way to zero.  It's very impressive
 stuff, and the [writeup on the project][measureme writeup] is a good read.
-If you really want to try this yourself, then the tl;dr is that you need to:
 
-* [ ] Disable ASLR
-* [ ] Count instructions which retire in userspace (ie. ring 3)
-* [ ] Subtract the number of timer-based hardware interrupts
+If you really want to try this yourself, then the tl;dr is that you need to
+count instructions which retire in userspace (ie. ring 3), and then subtract
+the number of timer-based hardware interrupts.  You'll also need:
 
-(This advice is Linux-specific, and you'll also need a CPU with the necessary
-counters.)  Oh, I forgot one:
+* [ ] a Linux setup with ASLR disabled;
+* [ ] a CPU with the necessary counters;
+* [ ] a benchmark with deterministic _control flow_.
 
-* [ ] Make sure your software's control flow is deterministic
+This last one is the catch.  Normally when we say a program is "deterministic"
+we're referring to its observable output; but now the instruction count is
+part of the observable output!  This means that you're allowed to _look_
+at the clock, /dev/urandom, etc... but you're never allowed to _branch_
+on those things.
 
-This last one is the catch.  "Deterministic control flow" means that you're
-allowed to _look_ at the clock, /dev/urandom, etc... but you're not allowed
-to _branch_ on those things.  This is a **very** hard pill to swallow, much
-harder than "simply" producing deterministic output.  The rustc team have
-gone to lengths to ensure that (single-threaded) rustc has this property.
-For example, at some point rustc prints its own PID, and the formatting code
-branches based on the number of digits in the PID.  This was a measureable
-source of variance and had to be fixed.  Yikes!
+This is a **very** hard pill to swallow, much harder than "simply" producing
+deterministic output.  The rustc team have gone to lengths to ensure that
+(single-threaded) rustc has this property.  An example: at some point rustc
+prints its own PID, and the formatting code branches based on the number of
+digits in the PID.  This was a measureable source of variance and had to be
+fixed by padding the formatted PID with spaces.  Yikes!
 
-Ask yourself: are you ready to commit to this level of rigour?  The runtime is
-included too, so you're also committing to no garbage collector, and no fancy
-allocator.  It probably means no threads as well.  If you're not willing to
-go _all the way_ then IMO there's not much point in using instruction count.
-It's a PITA compared to just measuring wall-time, and not worth if your
-variance is dominated by other things.
+Ask yourself: are you ready to commit to this level of rigour?  It applies to
+the runtime too, so it means: no garbage collector, and no fancy allocator.
+It probably means no threads as well.  If you're not willing to go _all the
+way_ then IMO there's not much point in using instruction count.  It's a
+PITA compared to just measuring wall-time, and not worth if your variance
+is dominated by other things.
 
 [measureme PR]: https://github.com/rust-lang/measureme/pull/143
 [measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
