@@ -279,19 +279,42 @@ the required tightness.
 
 ## What about measuring instruction count?
 
-Some people measure "kinda deterministic" proxies such as instructions or
-CPU cycles instead of wall time.  In an earlier version of this document
-I claimed that these measures still have a fair amount of variance, and
-recommended sticking with wall-time.
+Some people use CPU counters to measure retired instructions, CPU cycles,
+etc. as a proxy for wall time, in the hopes of getting more repeatable results.
+There are two things to consider:
 
-That's still my recommendation, but it's worth pointing to some [recent
-work][measureme PR] by the rustc people which shows that it's _possible_
-to get the variance down almost all the way to zero.  It's very impressive
-stuff, and the [writeup on the project][measureme writeup] is a good read.
+1. How well does your proxy correlate with wall time?
+2. How much better is the variance, compared to wall time?
 
-If you really want to try this yourself, then the tl;dr is that you need to
-count instructions which retire in userspace (ie. ring 3), and then subtract
-the number of timer-based hardware interrupts.  You'll also need:
+In my experience, simply countring instructions doesn't correlate well enough,
+and counting CPU cycles is surprisingly high varience.  If you go down this
+route I recommended you use a more sophisticated model, such as the one used
+by [cachegrind].
+
+If you do find a good proxy with less variance, then go for it!  Your
+confidence intervals will converge faster.
+
+[cachegrind]: https://valgrind.org/docs/manual/cg-manual.html
+
+### Instruction count is not determinisic
+
+The promise of a completely determinisic proxy is tempting, because it
+means you can do away with all this statistical nonsense and just compare
+concrete numbers.  Sounds good, right?  Sadly this holy grail is further
+away than it looks.
+
+A previous version of this document claimed that a getting a determenistic
+measurement which is still a good proxy for wall time is infeasible.
+The rustc people have made me eat my words, but read on.
+
+Some [recent work][measureme PR] by the rustc people shows that it's _possible_
+to get instruction count variance down almost all the way to zero.  It's very
+impressive stuff, and the [writeup on the project][measureme writeup] is a
+good read.
+
+If you want to try this yourself, the tl;dr is that you need to count
+instructions which retire in ring 3, and then subtract the number of
+timer-based hardware interrupts.  You'll need:
 
 * [ ] a Linux setup with ASLR disabled;
 * [ ] a CPU with the necessary counters;
@@ -310,12 +333,8 @@ prints its own PID, and the formatting code branches based on the number of
 digits in the PID.  This was a measureable source of variance and had to be
 fixed by padding the formatted PID with spaces.  Yikes!
 
-Ask yourself: are you ready to commit to this level of rigour?  It applies to
-the runtime too, so it means: no garbage collector, and no fancy allocator.
-It probably means no threads as well.  If you're not willing to go _all the
-way_ then IMO there's not much point in using instruction count.  It's a
-PITA compared to just measuring wall-time, and not worth if your variance
-is dominated by other things.
+If don't go _all the way_ then IMO you should still be estimating a confidence
+interval.
 
 [measureme PR]: https://github.com/rust-lang/measureme/pull/143
 [measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
