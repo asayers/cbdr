@@ -1,5 +1,4 @@
 mod analyze;
-mod term_paint;
 mod label;
 mod plot;
 mod pretty;

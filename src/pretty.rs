@@ -9,7 +9,7 @@ pub fn render(
     measurements: &Measurements,
     diffs: impl Iterator<Item = (Bench, Bench, Vec<DiffCI>)>,
     significance: f64,
-) -> Result<Vec<u8>> {
+) -> Result<String> {
     let mut out = tabwriter::TabWriter::new(Vec::<u8>::new());
 
     let mut first = true;
@@ -46,7 +46,7 @@ pub fn render(
         )?;
     }
 
-    Ok(out.into_inner()?)
+    Ok(String::from_utf8(out.into_inner()?)?)
 }
 
 fn fmt_ci((l, r): (f64, f64)) -> impl fmt::Display {

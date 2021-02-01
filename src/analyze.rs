@@ -1,5 +1,5 @@
 use crate::label::*;
-use crate::{pretty, term_paint};
+use crate::pretty;
 use anyhow::*;
 use log::*;
 use std::time::*;
@@ -61,7 +61,8 @@ pub fn analyze(opts: Options) -> Result<()> {
     init_metrics(headers.map(|x| x.to_string()).collect());
     let mut measurements = Measurements::default();
 
-    let mut stdout = term_paint::Painter::new()?;
+    let stdout = std::io::stdout();
+    let mut stdout = liveterm::TermPrinter::new(stdout.lock());
 
     let mut last_print = Instant::now();
     for row in rdr.into_records() {
@@ -78,7 +79,9 @@ pub fn analyze(opts: Options) -> Result<()> {
                 (from, to, diff)
             });
             let out = pretty::render(&measurements, diffs, opts.significance)?;
-            stdout.print(&out)?;
+            stdout.clear()?;
+            stdout.buf = out;
+            stdout.print()?;
 
             // // Check to see if we're finished
             // if let Some(threshold) = opts.threshold {
@@ -103,7 +106,9 @@ pub fn analyze(opts: Options) -> Result<()> {
         (from, to, diff)
     });
     let out = pretty::render(&measurements, diffs, opts.significance)?;
-    stdout.print(&out)?;
+    stdout.clear()?;
+    stdout.buf = out;
+    stdout.print()?;
 
     if opts.deny_positive {
         for (from, to) in opts.pairs() {
