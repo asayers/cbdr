@@ -91,7 +91,7 @@ checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
 
 [[package]]
 name = "cbdr"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ansi_term 0.12.1",
  "anyhow",
