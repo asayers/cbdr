@@ -16,7 +16,7 @@ distributed as `Y` (also normal, but possibly with different mean/variance to
 between the population means.
 
 ```
-# use confidence::*;
+use behrens_fisher::*;
 let x_sample: Vec<f64> = vec![1., 2., 3., 4.];
 let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
 
