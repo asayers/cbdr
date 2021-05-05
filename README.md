@@ -34,27 +34,54 @@ looking for `cbdr`, a tool which automates some of this advice, look
 
 # The method
 
-Let's suppose your repo contains a nice macro-benchmark called `bench.sh`. It
-only takes a second or so to run, and it runs all the stuff you care about, in
-roughly the right proportion.  Let's also suppose that we want to see a CI
-warning if a feature branch increases `bench.sh`'s running time by more than 2%.
-Here's what the CI job does:
+You have a nice macro-benchmark called `bench.sh`. It doesn't take too long to
+run (a second or so), and it runs all the stuff you care about, in roughly the
+right proportion.  Someone wants to merge their feature branch into master.
+Here's what we do:
 
-1. Check out the feature branch and its merge-base in separate worktrees -
-   we'll call them "master" and "feature" - and build whatever needs building.
-2. Flip a coin.
-    * If heads, run `master/bench.sh`
-    * If tails, run `feature/bench.sh`
+First, make two checkouts: one for the feature branch ("feature") and one
+for its merge-base ("base"), and compile whatever needs to be compiled.
+We're going to be taking multiple measurements and recording the results in
+a CSV file.  "Taking a measurement" means doing the following:
 
-   Record the time it takes to run and add it to the set of measurements.
-3. Using Welch's t-test, compute a one-tailed [confidence interval] for the
-   difference of the means.  (See [Choosing α] below.)
-4. Divide the confidence interval by the master's mean running time to get a
-   percentage.
-    * The upper bound is below +2% → You're good to merge!
-    * The lower bound is above +2% → It looks like there's a regression.
-    * The interval contains +2% → The confidence interval is too wide and you
-      need more data: go to step 2.
+1. Flip a coin.
+2. If heads, run `base/bench.sh`.  If tails, run `feature/bench.sh`.
+3. Record the time it took to run and append it to bench.csv, noting whether
+   it was for "base" or "feature".
+
+We're going to end up with a file which looks something like this:
+
+```csv
+benchmark , wall_time
+base      , 15.720428923
+feature   , 16.173336192
+base      , 15.488631299
+feature   , 16.654012064
+feature   , 16.37941706
+feature   , 16.512443378
+base      , 15.992080634
+```
+
+From this file, we can compute a one-tailed [confidence interval] for the
+difference of the means using Using Welch's t-test.  (See [Choosing α] below.)
+You can also divide the confidence interval by base's sample mean to get a
+percentage change, which is probably more readable.  Computing this value for the CSV file above gives the following confidence interval:
+
+```
+[  -5.8% ..  +14.6%]
+```
+
+Ok, we're ready to begin:
+
+1. Run `base/bench.sh` and `feature/bench.sh` once and throw the results away.
+   These are just "warm-ups" to get files cached etc.
+2. Take a measurement.
+3. Compute the confidence interval.
+4.
+   * The upper bound is below +2% → You're good to merge!
+   * The lower bound is above +2% → It looks like there's a regression.
+   * The interval contains +2% → The confidence interval is too wide and you
+      need more data.  Go to step 2.
 
 [Choosing α]: #choosing-α
 
@@ -250,7 +277,7 @@ you a far more gaussian-looking distribution.
 
 Every time you run your benchmark you get a different result.  Those results
 form a distrubution.  You can find out what this distrubution looks like by
-plotting a histogram and running the benchmark a large number of times.
+running the benchmark a large number of times and plotting a histogram.
 
 Of course, the shape depends on what your benchmark does; but _in general_
 benchmark results tend to have a lot of skew: on the downside, it's as if
