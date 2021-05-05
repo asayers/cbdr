@@ -246,28 +246,42 @@ you a far more gaussian-looking distribution.
 
 # Misc
 
+## Choosing a family of distributions
+
+Every time you run your benchmark you get a different result.  Those results
+form a distrubution.  You can find out what this distrubution looks like by
+plotting a histogram and running the benchmark a large number of times.
+
+Of course, the shape depends on what your benchmark does; but _in general_
+benchmark results tend to have a lot of skew: on the downside, it's as if
+there's a hard minimum value which they can't do better than; but on the
+upside it's different: you get the occasional outlier which take a really
+long time.  I think a log-normal is generally a decent fit. (But perhaps
+something more kurtotic would be better?)
+
+(Note: Of course, it's possible to write benchmarks which is modelled
+really badly by a log-normal!  If your benchmark is `sleep(random(10))`
+then its running time will be more-or-less uniformly distributed.  Do plot
+a histogram and verify that the shape looks roughly right.)
+
+...actually, using log-normals remains future work.  For now, I'm going to
+model them as _normally_ distributed.  It's not great.
+
 ## Choosing a statistic
 
-The run-time of your benchmark is an unknown distrubution.  In my experience, if
-you write a reasonable macro-benchmark, the distribution will be fairly close to
-normal.  This is not _necessarily_ the case, of course!  If your benchmark calls
-`sleep(random_log_normal())` then its running time will be (surprise surprise)
-log-normally distributed.  Do a normality test if you're concerned.
+So, we make the simplifying assumption that the "before" results and the
+"after" results are coming from a pair of normal distributions with unknown
+means and variances.  Now we can start trying to estimate the thing we're
+interested in: do those distributions have the same mean?  The appropriate
+test for this is Student's t-test.
 
-So: we have two distributions, assumed to be normal, but with different
-means and variances.  We want to test whether the means are different.
-The appropriate test in this case is Student's t-test.
+IMO, a confidence interval is nicer to look at than a p-value, because it
+gives some sense of how big the regression is (not just whether one exists).
+For this we'll need the inverse CDF of the t-distribution.  There are various
+implementations around, including one in this repo.
 
-However, we don't just want to know _whether_ a regression has occurred:
-we want to know how big it is too.  A confidence interval is going to be
-more useful than a p-value.  For this you'll need the inverse CDF of the
-t-distribution.  There are various implementations around, including one in
-this repo.
-
-If your benchmark gives timings which are not at all normally-distributed
-(and you don't feel like changing your benchmark), non-parametric tests
-do exist.  They're far less powerful than a t-test, though, so it'll take
-much longer for your confidence intervals to shrink.
+(Note: non-parametric tests do exist, but they're far less powerful than a
+t-test, so it'll take much longer for your confidence intervals to shrink.)
 
 ## Choosing α
 
