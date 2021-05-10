@@ -280,17 +280,18 @@ Every time you run your benchmark you get a different result.  Those results
 form a distrubution.  You can find out what this distrubution looks like by
 running the benchmark a large number of times and plotting a histogram.
 
-Of course, the shape depends on what your benchmark does; but _in general_
-benchmark results tend to have a lot of skew: on the downside, it's as if
-there's a hard minimum value which they can't do better than; but on the
-upside it's different: you get the occasional outlier which take a really
-long time.  I think a log-normal is generally a decent fit. (But perhaps
-something more kurtotic would be better?)
+The shape depends on what your benchmark _does_, of course; but _in general_
+benchmark results tend to have a lot of skew: on the left, it's as if there's
+a hard minimum value which they can't do better than; but on the right it's
+different: you get the occasional outlier which takes a really long time.
 
-(Note: Of course, it's possible to write benchmarks which is modelled
-really badly by a log-normal!  If your benchmark is `sleep(random(10))`
-then its running time will be more-or-less uniformly distributed.  Do plot
-a histogram and verify that the shape looks roughly right.)
+In my experience, you can usually get a decent fit using a log-normal. (But
+perhaps something more kurtotic would be better?)
+
+(Note: If your benchmark is just `sleep(random(10))`, for example, then
+obviously its running time will be more-or-less uniformly distributed and
+you're not going to get a good fit with a log-normal.  If you want to know the
+shape of your benchmarks, do plot a histogram.  `cbdr` can help you with this.)
 
 ...actually, using log-normals remains future work.  For now, I'm going to
 model them as _normally_ distributed.  It's not great.
