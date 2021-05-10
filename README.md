@@ -62,14 +62,17 @@ feature   , 16.512443378
 base      , 15.992080634
 ```
 
-From this file, we can compute a one-tailed [confidence interval] for the
-difference of the means using Using Welch's t-test.  (See [Choosing α] below.)
-You can also divide the confidence interval by base's sample mean to get a
-percentage change, which is probably more readable.  Computing this value for the CSV file above gives the following confidence interval:
+From this file, we can compute a [confidence interval] for the difference of
+the means using Welch's t-test.  (See [Choosing α] below.)  You can also
+divide the confidence interval by base's sample mean to get a percentage
+change, which is probably more readable.  Computing this value for the CSV
+file tells us that the change from base to feature is:
 
 ```
 [  -5.8% ..  +14.6%]
 ```
+
+[Choosing α]: #choosing-α
 
 Ok, we're ready to begin:
 
@@ -82,8 +85,6 @@ Ok, we're ready to begin:
    * The lower bound is above +2% → It looks like there's a regression.
    * The interval contains +2% → The confidence interval is too wide and you
       need more data.  Go to step 2.
-
-[Choosing α]: #choosing-α
 
 The above is just an example but hopefully you get the idea.  You can vary the
 details; for instance, why not measure max RSS as well as running time? (But see
@@ -317,6 +318,10 @@ Choosing a higher confidence level means you'll get fewer false alarms, but it
 also means that the confidence interval will take longer to shrink.  This could
 just mean that your CI runs take longer; it could mean that they _never_ reach
 the required tightness.
+
+You probably only care about detecting _regressions_ and don't care about
+detecting improvements; in this case you can use a one-tailed confidence
+interval.
 
 ## What about measuring instruction count?
 
