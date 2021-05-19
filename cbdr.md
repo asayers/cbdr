@@ -9,9 +9,10 @@ cargo install cbdr
 ## Usage
 
 `cbdr sample` takes a list of benchmarks in the form `name:program`.
-It randomly selects a benchmark, runs the program, reports the execution
-time, and loops.  The output is CSV-formatted and goes on forever, so lets
-limit it with `head` and format it with `column`.
+It randomly selects a benchmark, runs the program, reports the execution time,
+and loops.  The output is CSV-formatted and goes on forever.  To get an idea
+of what it looks like, let's pass it though `head` (to limit it) and `column`
+(to format it):
 
 ```
 $ cbdr sample "md5:md5sum $BIG_FILE" "sha1:sha1sum $BIG_FILE" "sha256:sha256sum $BIG_FILE" | head | column -ts,
@@ -120,6 +121,17 @@ $ cbdr sample --timeout=30s [benchmarks] | cbdr analyze
 then when you think you've collected enough you hit ctrl-C.  If you do this
 the risk of biasing your results is very high.  Decide your stopping point
 before you start the benchmark!)
+
+If the command lines you're passing in are long, you might find it more
+convenient to write them one-per-line and pass them into xargs:
+
+```
+$ xargs cbdr sample >results.csv <<EOF
+"md5:    md5sum    $BIG_FILE"
+"sha1:   sha1sum   $BIG_FILE"
+"sha256: sha256sum $BIG_FILE"
+EOF
+```
 
 `cbdr plot` produces a vega-lite specification for vizualising benchmark
 results.
