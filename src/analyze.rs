@@ -17,6 +17,12 @@ pub struct Options {
     // threshold: Option<f64>,
     #[structopt(long)]
     deny_positive: bool,
+    /// Dynamic printing. If dynaming printing is true a stdout buffer will
+    /// be used so that the values can be updated. If it is set to false,
+    /// the output will just simply be printed. This last option is needed
+    /// for some testers.
+    #[structopt(long)]
+    disable_dynamic_printing: bool,
     /// A "base" label.  If specified, all labels will be compared to this.
     #[structopt(long)]
     pub base: Option<String>,
@@ -72,7 +78,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         let values = row.map(|x| x.parse().unwrap());
         measurements.update(bench, values);
 
-        if last_print.elapsed() > Duration::from_millis(100) {
+        if !opts.disable_dynamic_printing && last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();
             let diffs = opts.pairs().map(|(from, to)| {
                 let diff = measurements.diff(from, to);
@@ -106,9 +112,13 @@ pub fn analyze(opts: Options) -> Result<()> {
         (from, to, diff)
     });
     let out = pretty::render(&measurements, diffs, opts.significance)?;
-    stdout.clear()?;
-    stdout.buf = out;
-    stdout.print()?;
+    if !opts.disable_dynamic_printing {
+        stdout.clear()?;
+        stdout.buf = out;
+        stdout.print()?;
+    } else {
+        println!("{}", out);
+    }
 
     if opts.deny_positive {
         for (from, to) in opts.pairs() {
