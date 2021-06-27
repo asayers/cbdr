@@ -92,15 +92,15 @@ available in this repo which can do it.
 ### The main loop
 
 Ok, we're ready to begin.  Start by running `base/bench.sh` and
-`feature/bench.sh` once and throwing the results away.  These are just
-"warm-ups" to get files cached etc.
+`feature/bench.sh` once each and throwing the results away.  These are just
+"warm-ups" to get files cached etc.  Then:
 
 1. Take a measurement.
 2. Compute the confidence interval.
 3.
    * If the whole interval is under +2% → You're good to merge!
    * If the whole interval is above +2% → It looks like there's a regression.
-   * If the interval straddles +2% → We don't have enough data to tell
+   * If the interval straddles +2% → We don't have enough data yet to tell
      whether there's a regression.  Go to step 1.
 
 And that's it!  You may also want to include a time-limit.  What you do when
@@ -196,10 +196,14 @@ seen as a nuisance.
 
 ### ❌ Plotting the results and eyeballing the difference
 
-That's... well actually it's not the worst way to benchmark.  Sure, it's
+That's... well actually it's _not_ the worst way to benchmark.  Sure, it's
 not exactly _rigorous_, but on the plus side it's pretty hard to screw up.
 However, this page is about running benchmarks as part of your CI, so anything
 which requires a human-in-the-loop is automatically out.
+
+In fact, I recommend you do this sometimes, just as a sanity check; especially
+when first getting your benchmarking set up.  (FYI [cbdr](cbdr.md) has
+functionality to help with this.)
 
 ### ❌ Computing the two means and comparing them
 
@@ -282,7 +286,7 @@ Instead, why not make a macrobenchmark which runs all of the microbenchmarks
 in sequence?  This will take all your microbenchmarks into account, and give
 you a far more gaussian-looking distribution.
 
-# Misc
+# Justifying the method
 
 ## Choosing a family of distributions
 
