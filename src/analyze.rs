@@ -1,6 +1,7 @@
 use crate::label::*;
 use crate::pretty;
 use anyhow::*;
+use crossterm::tty::IsTty;
 use log::*;
 use std::time::*;
 use structopt::*;
@@ -17,12 +18,6 @@ pub struct Options {
     // threshold: Option<f64>,
     #[structopt(long)]
     deny_positive: bool,
-    /// Dynamic printing. If dynaming printing is true a stdout buffer will
-    /// be used so that the values can be updated. If it is set to false,
-    /// the output will just simply be printed. This last option is needed
-    /// for some testers.
-    #[structopt(long)]
-    disable_dynamic_printing: bool,
     /// A "base" label.  If specified, all labels will be compared to this.
     #[structopt(long)]
     pub base: Option<String>,
@@ -68,6 +63,7 @@ pub fn analyze(opts: Options) -> Result<()> {
     let mut measurements = Measurements::default();
 
     let stdout = std::io::stdout();
+    let interactive = stdout.is_tty();
     let mut stdout = liveterm::TermPrinter::new(stdout.lock());
 
     let mut last_print = Instant::now();
@@ -78,7 +74,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         let values = row.map(|x| x.parse().unwrap());
         measurements.update(bench, values);
 
-        if !opts.disable_dynamic_printing && last_print.elapsed() > Duration::from_millis(100) {
+        if interactive && last_print.elapsed() > Duration::from_millis(100) {
             last_print = Instant::now();
             let diffs = opts.pairs().map(|(from, to)| {
                 let diff = measurements.diff(from, to);
@@ -112,7 +108,7 @@ pub fn analyze(opts: Options) -> Result<()> {
         (from, to, diff)
     });
     let out = pretty::render(&measurements, diffs, opts.significance)?;
-    if !opts.disable_dynamic_printing {
+    if interactive {
         stdout.clear()?;
         stdout.buf = out;
         stdout.print()?;

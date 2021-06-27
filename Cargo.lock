@@ -99,6 +99,7 @@ dependencies = [
  "anyhow",
  "arc-swap",
  "behrens-fisher",
+ "crossterm",
  "csv",
  "env_logger",
  "humantime",
