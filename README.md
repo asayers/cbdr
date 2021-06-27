@@ -41,6 +41,9 @@ Here's what we do:
 
 First, make two checkouts: one for the feature branch ("feature") and one
 for its merge-base ("base"), and compile whatever needs to be compiled.
+
+### Taking measurements
+
 We're going to be taking multiple measurements and recording the results in
 a CSV file.  "Taking a measurement" means doing the following:
 
@@ -52,7 +55,7 @@ a CSV file.  "Taking a measurement" means doing the following:
 We're going to end up with a file which looks something like this:
 
 ```csv
-benchmark , wall_time
+branch    , wall_time
 base      , 15.720428923
 feature   , 16.173336192
 base      , 15.488631299
@@ -62,48 +65,54 @@ feature   , 16.512443378
 base      , 15.992080634
 ```
 
-From this file, we can compute a [confidence interval] for the difference of
-the means using Welch's t-test.  (See [Choosing α] below.)  You can also
-divide the confidence interval by base's sample mean to get a percentage
-change, which is probably more readable.  Computing this value for the CSV
-file tells us that the change from base to feature is:
+This doesn't need to be anything fancy: `/usr/bin/time --format "$branch,%e"
+--append --output bench.csv $branch/bench.sh` has you covered - it's not
+the most precice thing in the world but it's probably good enough.
 
-```
-[  -5.8% ..  +14.6%]
-```
+### Computing a confidence interval
 
+Now for the stats: From this data, we can compute a confidence interval
+for the difference of the means using [Welch's t-test].  You'll need to
+[choose an appropriate value for α][Choosing α].  You can then divide
+the confidence interval by base's sample mean to get a percentage change
+(optional, but it makes it more readable IMO).
+
+For instance, if I compute the confidence interval using the data above, it
+shows that going from `base` to `feature` changes the wall time by somewhere
+between -5.8% and +14.6% - ie. we can't even really tell which one is faster!
+Clearly more data is required.
+
+[Welch's t-test]: https://en.wikipedia.org/wiki/Welch%27s_t-test
 [Choosing α]: #choosing-α
 
-Ok, we're ready to begin:
+There are packages available for julia, r, python, etc. that can help
+you compute the confidence interval.  There's also [a CLI tool](cbdr.md)
+available in this repo which can do it.
 
-1. Run `base/bench.sh` and `feature/bench.sh` once and throw the results away.
-   These are just "warm-ups" to get files cached etc.
-2. Take a measurement.
-3. Compute the confidence interval.
-4.
-   * The upper bound is below +2% → You're good to merge!
-   * The lower bound is above +2% → It looks like there's a regression.
-   * The interval contains +2% → The confidence interval is too wide and you
-      need more data.  Go to step 2.
+### The main loop
+
+Ok, we're ready to begin.  Start by running `base/bench.sh` and
+`feature/bench.sh` once and throwing the results away.  These are just
+"warm-ups" to get files cached etc.
+
+1. Take a measurement.
+2. Compute the confidence interval.
+3.
+   * If the whole interval is under +2% → You're good to merge!
+   * If the whole interval is above +2% → It looks like there's a regression.
+   * If the interval straddles +2% → We don't have enough data to tell
+     whether there's a regression.  Go to step 1.
+
+And that's it!  You may also want to include a time-limit.  What you do when
+the you hit the time limit depends on how strict you are about performance.
+Perhaps just check if the center is above or below 2%.  If you're regularly
+hitting the time limit, investigate why your benchmark is so noisy.
 
 The above is just an example but hopefully you get the idea.  You can vary the
-details; for instance, why not measure max RSS as well as running time? (But see
-[Checking too many variables] below.)
+details; for instance, why not measure max RSS as well as running time? (But
+take note of [Checking too many variables] below.)
 
 [Checking too many variables]: #-checking-too-many-variables
-
-You may also want to include a time-limit.  Once it's reached, just check that
-the lower bound is above +2%.  If it is, there's no evidence of a regression,
-and it's probably safe to merge.
-
-Implementing step 2 is easy: `time --format=%e --append --output=measurements`
-has you covered - it's not the most precice thing in the world but it's probably
-good enough.
-
-For the t-test you could use julia or python; alternatively, this repo contains
-a [tool to help you do it](cbdr.md).
-
-[confidence interval]: https://en.wikipedia.org/wiki/Welch%27s_t-test
 
 # Common bad practice
 
