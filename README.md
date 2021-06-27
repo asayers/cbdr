@@ -334,7 +334,7 @@ You probably only care about detecting _regressions_ and don't care about
 detecting improvements; in this case you can use a one-tailed confidence
 interval.
 
-## What about measuring instruction count?
+# What about measuring instruction count?
 
 Some people use CPU counters to measure retired instructions, CPU cycles,
 etc. as a proxy for wall time, in the hopes of getting more repeatable results.
@@ -345,15 +345,15 @@ There are two things to consider:
 
 In my experience, simply countring instructions doesn't correlate well enough,
 and counting CPU cycles is surprisingly high varience.  If you go down this
-route I recommended you use a more sophisticated model, such as the one used
-by [cachegrind].
+route I recommended you explore more sophisticated models, such as the one
+used by [cachegrind].
 
 If you do find a good proxy with less variance, then go for it!  Your
 confidence intervals will converge faster.
 
 [cachegrind]: https://valgrind.org/docs/manual/cg-manual.html
 
-### Instruction count is ~~not determinisic~~ hard to make determinisic
+## Instruction count is ~~not determinisic~~ hard to make determinisic
 
 The idea of swapping wall time for something 100% determinisic is very
 tempting, because it means you can do away with all this statistical nonsense
@@ -386,11 +386,16 @@ on those things.  (Or, if it does, it had better make sure both branches
 have the same number of instrucctions.)
 
 This is a **very** hard pill to swallow, much harder than "simply" producing
-deterministic output.  The rustc team have gone to great lengths to ensure that
-(single-threaded) rustc has this property.  For example: at some point rustc
-prints its own PID, and the formatting code branches based on the number of
-digits in the PID.  This was a measureable source of variance and had to be
-fixed by padding the formatted PID with spaces.  Yikes!
+deterministic output.  For example, many hashmap implementations mix some
+randomness into their hashes.  A program which uses such a hashmap may
+have the exact same behaviour every time it's run, but if you measure its
+instruction count it will be different on every run.
+
+The rustc team have gone to great lengths to ensure that (single-threaded)
+rustc has this property.  For example, at some point rustc prints its own PID,
+and the formatting code branches based on the number of digits in the PID.
+This was a measureable source of variance and had to be fixed by padding
+the formatted PID with spaces.  Yikes!
 
 The conclusion: it _can_ be done; but if you're not willing to go all the
 way like the Rust project did, then IMO you should still be estimating a
