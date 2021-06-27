@@ -87,8 +87,8 @@ pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Result<f64, Er
     let v = var_delta * (var_delta / (k_x + k_y));
 
     // Compute the critical value at the chosen confidence level
-    assert!(p.is_normal());
-    assert!(v.is_normal());
+    assert!(p.is_normal()); // "normal" in the f64 sense, not gaussian!
+    assert!(v.is_normal()); // "normal" in the f64 sense, not gaussian!
     let t = student_t::inv_cdf(p, v);
 
     let radius = t * var_delta.sqrt();
