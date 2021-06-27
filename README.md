@@ -223,11 +223,12 @@ Quoting the [Biostats handbook]:
 
 Just because a benchmarking library prints its output with a "± x" doesn't
 mean it's computing a confidence interval.  "±" often denotes a standard
-deviatioon, or some percentile, or anything really since "±" doesn't have a
-fixed standardized meaning.  Having the variance of the measurements is well
-and good, but it doesn't help you decide whether the result is significant.
-If the docs don't specify the meaning, you could try grepping the source
-for mention of an "inverse CDF".
+deviatioon, or some percentile; but it could mean anything, really, since
+the "±" symbol doesn't have a standardized meaning.
+
+Having the variance of the measurements is well and good, but it doesn't
+help you decide whether the result is significant.  If the docs don't specify
+the meaning, you could try grepping the source for mention of an "inverse CDF".
 
 ## Part 3: Validation vs exploration
 
@@ -352,45 +353,48 @@ confidence intervals will converge faster.
 
 [cachegrind]: https://valgrind.org/docs/manual/cg-manual.html
 
-### Instruction count is not determinisic
+### Instruction count is ~~not determinisic~~ hard to make determinisic
 
-The promise of a completely determinisic proxy is tempting, because it
-means you can do away with all this statistical nonsense and just compare
-concrete numbers.  Sounds good, right?  Sadly this holy grail is further
-away than it looks.
+The idea of swapping wall time for something 100% determinisic is very
+tempting, because it means you can do away with all this statistical nonsense
+and just compare two numbers.  Sounds good, right?
 
-A previous version of this document claimed that a getting a determenistic
-measurement which is still a good proxy for wall time is infeasible.
-The rustc people have made me eat my words, but read on.
+A previous version of this document claimed that there is no deterministic
+measurement which is still a good proxy for wall time.  However, the Rust
+project has recently made me eat my words.
 
-Some [recent work][measureme PR] by the rustc people shows that it's _possible_
+Some [recent work][measureme PR] by the rustc people shows that it's possible
 to get instruction count variance down almost all the way to zero.  It's very
-impressive stuff, and the [writeup on the project][measureme writeup] is a
-good read.
+impressive stuff, and the [writeup on the project][measureme writeup] is
+excellent - I recommend reading it.
 
 If you want to try this yourself, the tl;dr is that you need to count
 instructions which retire in ring 3, and then subtract the number of
 timer-based hardware interrupts.  You'll need:
 
-* [ ] a Linux setup with ASLR disabled;
-* [ ] a CPU with the necessary counters;
+* [x] a Linux setup with ASLR disabled;
+* [x] a CPU with the necessary counters;
 * [ ] a benchmark with deterministic _control flow_.
 
 This last one is the catch.  Normally when we say a program is "deterministic"
 we're referring to its observable output; but now the instruction count is
-part of the observable output!  This means that you're allowed to _look_
-at the clock, /dev/urandom, etc... but you're never allowed to _branch_
-on those things.
+part of the observable output!
+
+What does this mean in practice?  It means your program is allowed to
+_look_ at the clock, /dev/urandom, etc... but it's not allowed to _branch_
+on those things.  (Or, if it does, it had better make sure both branches
+have the same number of instrucctions.)
 
 This is a **very** hard pill to swallow, much harder than "simply" producing
-deterministic output.  The rustc team have gone to lengths to ensure that
-(single-threaded) rustc has this property.  An example: at some point rustc
+deterministic output.  The rustc team have gone to great lengths to ensure that
+(single-threaded) rustc has this property.  For example: at some point rustc
 prints its own PID, and the formatting code branches based on the number of
 digits in the PID.  This was a measureable source of variance and had to be
 fixed by padding the formatted PID with spaces.  Yikes!
 
-If don't go _all the way_ then IMO you should still be estimating a confidence
-interval.
+The conclusion: it _can_ be done; but if you're not willing to go all the
+way like the Rust project did, then IMO you should still be estimating a
+confidence interval.
 
 [measureme PR]: https://github.com/rust-lang/measureme/pull/143
 [measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
