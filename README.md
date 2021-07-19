@@ -196,14 +196,16 @@ seen as a nuisance.
 
 ### ❌ Plotting the results and eyeballing the difference
 
-That's... well actually it's _not_ the worst way to benchmark.  Sure, it's
-not exactly _rigorous_, but on the plus side it's pretty hard to screw up.
-However, this page is about running benchmarks as part of your CI, so anything
-which requires a human-in-the-loop is automatically out.
+This is a fine way to benchmark, actually!  Sure, it's not exactly _rigorous_,
+but on the plus side it's pretty hard to screw up.  However, this page is
+about running benchmarks as part of your CI, so anything which requires a
+human-in-the-loop is automatically out.
 
-In fact, I recommend you do this sometimes, just as a sanity check; especially
-when first getting your benchmarking set up.  (FYI [cbdr](cbdr.md) has
-functionality to help with this.)
+Do try plotting your raw benchmark data, though, just as a sanity check
+(especially when first setting up your benchmarking CI).  You could plot
+histograms like at the top of this page, or violin plots, or a heatmap.
+Any of those will let you see at a glance how your benchmark is behaving.
+(FYI [cbdr](cbdr.md) has functionality to help with this.)
 
 ### ❌ Computing the two means and comparing them
 
