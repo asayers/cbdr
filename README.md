@@ -45,31 +45,28 @@ analysis on the two samples.  I suggest that you don't do this; instead,
 randomly pick one of your commits to measure each time you do a run.
 This has two advantages:
 
-* If results are correlated with time, then they're correlated with
-  time-varying noise.  Imagine you finish benchmarking commit A on a quiet
-  machine, but then a cron jobs starts just as you start benchmarking commit B;
-  the penalty is absorbed entirely by commit B!  This applies to intermittent
-  noise which varies at the second- or minute-scale, which is very common
-  in benchmarking rigs.
+* **When results are correlated with time, they're correlated with time-varying noise.**
+
+  Imagine you finish benchmarking commit A on a quiet machine, but then a cron
+  jobs starts just as you start benchmarking commit B; the penalty is absorbed
+  entirely by commit B!  This applies to intermittent noise which varies at
+  the second- or minute-scale, which is very common in benchmarking rigs.
 
   On the other hand, if you randomize the measurements then the penalty of
   the cron job in the example above will be even spread across both commits.
   It will hurt the precision of your results, but not the accuracy.
-* You can dynamically increase the number of samples until you achieve a
-  desired presicion.  After each sample you look at how wide the confidence
-  interval of the mean-difference is, and if it's too wide you take another
-  measurement.
+* **You can keep sampling until you achieve your desired presicion.**
 
-  If you perform the measurements in order, then at the time you decide to
-  move on from commit A to commit B, you only have access to the confidence
-  interval of the mean for commit A at the start, not the mean-difference.
-  Just because you have a precice estimate of the mean for commit A, it
-  doesn't mean you're going to have enough data for a precice estimate of
-  the mean-difference.
+  After each sample, you look at how wide the confidence interval of the
+  mean-difference is, and if it's too wide you take another measurement.
 
-I get it: you want to build commit A, benchmark it, then build commit B in
-the same checkout (replacing the artifacts from commit A).  Just save the
-artifacts somewhere.  I use $HOME/.cache/$PROJECT_bench/$SHORTREV.
+  Suppose, on the other hand, you perform the measurements in order.
+  You're benchmarking A and wondering if it's time to move on to B.  You can
+  compute a confidence interval for the mean of A, but that doesn't really
+  tell you how tight the confidence interval for the _difference of the means_
+  is going to be.  Just because you have a precice estimate of the mean for
+  commit A, it doesn't mean you're going to have enough data for a precice
+  estimate of the mean-difference.
 
 ### ❌ Saving old benchmark results for later use
 
@@ -78,7 +75,7 @@ benchmarking commit B", except now your results are correlated with sources of
 noise which vary at the day- or month-scale.  Is your cooling good enough to
 ensure that results taken in the summer are comparable with results taken in
 the winter?  (Ours isn't.)  Did you upgrade any hardware between now and then?
-How about software?
+Did you change anything in /etc?
 
 In addition to improving the quality of your data, freshly benchmarking the
 base means your CI runs are now (1) stateless and (2) machine-independent.
@@ -148,8 +145,8 @@ Quoting the [Biostats handbook]:
 
 Just because a benchmarking library prints its output with a "± x" doesn't
 mean it's computing a confidence interval.  "±" often denotes a standard
-deviatioon, or some percentile; but it could mean anything, really, since
-the "±" symbol doesn't have a standardized meaning.
+deviation, or some percentile; but it could mean anything, really, since the
+"±" symbol doesn't have a standardized meaning.
 
 Having the variance of the measurements is well and good, but it doesn't
 help you decide whether the result is significant.  If the docs don't specify
@@ -169,7 +166,7 @@ If the answer is "yes", well _now_ it's time for [sample-based profiling],
 [heap profiling], [causal profiling], [frame profiling][tracy],
 [micro-benchmarks], [CPU emulation], etc. etc..
 
-[perf]: https://github.com/KDAB/hotspot
+[sample-based profiling]: https://github.com/KDAB/hotspot
 [heap profiling]: https://github.com/KDE/heaptrack
 [causal profiling]: https://github.com/plasma-umass/coz
 [micro-benchmarks]: http://www.serpentine.com/criterion/
@@ -258,7 +255,7 @@ part of the observable output!
 What does this mean in practice?  It means your program is allowed to
 _look_ at the clock, /dev/urandom, etc... but it's not allowed to _branch_
 on those things.  (Or, if it does, it had better make sure both branches
-have the same number of instrucctions.)
+have the same number of instructions.)
 
 This is a **very** hard pill to swallow, much harder than "simply" producing
 deterministic output.  For example, many hashmap implementations mix some
