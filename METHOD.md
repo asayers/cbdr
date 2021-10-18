@@ -88,8 +88,9 @@ take note of [Checking too many variables] on the main page.)
 ## Choosing a family of distributions
 
 Every time you run your benchmark you get a different result.  Those results
-form a distrubution.  You can find out what this distrubution looks like by
-running the benchmark a large number of times and plotting a histogram.
+form a distrubution.  You can find out what this distrubution looks like
+by running the benchmark a large number of times and plotting a histogram
+(or better yet: a kernel density estimate).
 
 The shape depends on what your benchmark _does_, of course; but _in general_
 benchmark results tend to have a lot of skew: on the left, it's as if there's
@@ -104,8 +105,11 @@ obviously its running time will be more-or-less uniformly distributed and
 you're not going to get a good fit with a log-normal.  If you want to know the
 shape of your benchmarks, do plot a histogram.  `cbdr` can help you with this.)
 
-...actually, using log-normals remains future work.  For now, I'm going to
-model them as _normally_ distributed.  It's not great.
+Ok, so let's assume that our distributions are log-normal.  Well
+actually... the method described above uses a t-test, which assumes they're
+normally distributed.  It's not great.  If anyone knows a test for the
+difference of the means of two log-normally distributed populations, please
+let me know!
 
 ## Choosing a statistic
 
@@ -125,11 +129,11 @@ t-test, so it'll take much longer for your confidence intervals to shrink.)
 
 ## Choosing α
 
-The choice of α determines how many false-positive CI runs you're going to get.
-Choosing a higher confidence level means you'll get fewer false alarms, but it
-also means that the confidence interval will take longer to shrink.  This could
-just mean that your CI runs take longer; it could mean that they _never_ reach
-the required tightness.
+The choice of α determines how many false-positive CI runs you're going to
+get.  Choosing a higher confidence level means you'll get fewer false alarms,
+but it also means that the confidence interval will take longer to shrink.
+This could just mean that your CI runs take longer; but it could mean that
+they _never_ reach the required tightness.
 
 You probably only care about detecting _regressions_ and don't care about
 detecting improvements; in this case you can use a one-tailed confidence
