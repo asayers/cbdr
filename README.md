@@ -208,3 +208,73 @@ non-parametric one), and it will probably be a lot less powerful.
 Instead, why not make a macrobenchmark which runs all of the microbenchmarks
 in sequence?  This will take all your microbenchmarks into account, and give
 you a far more gaussian-looking distribution.
+
+## What about measuring instruction count?
+
+Some people use CPU counters to measure retired instructions, CPU cycles,
+etc. as a proxy for wall time, in the hopes of getting more repeatable results.
+There are two things to consider:
+
+1. How well does your proxy correlate with wall time?
+2. How much better is the variance, compared to wall time?
+
+In my experience, simply countring instructions doesn't correlate well enough,
+and counting CPU cycles is surprisingly high varience.  If you go down this
+route I recommended you explore more sophisticated models, such as the one
+used by [cachegrind].
+
+If you do find a good proxy with less variance, then go for it!  Your
+confidence intervals will converge faster.
+
+[cachegrind]: https://valgrind.org/docs/manual/cg-manual.html
+
+### Instruction count is ~~not determinisic~~ hard to make determinisic
+
+The idea of swapping wall time for something 100% determinisic is very
+tempting, because it means you can do away with all this statistical nonsense
+and just compare two numbers.  Sounds good, right?
+
+A previous version of this document claimed that there is no deterministic
+measurement which is still a good proxy for wall time.  However, the Rust
+project has recently made me eat my words.
+
+Some [recent work][measureme PR] by the rustc people shows that it's possible
+to get instruction count variance down almost all the way to zero.  It's very
+impressive stuff, and the [writeup on the project][measureme writeup] is
+excellent - I recommend reading it.
+
+If you want to try this yourself, the tl;dr is that you need to count
+instructions which retire in ring 3, and then subtract the number of
+timer-based hardware interrupts.  You'll need:
+
+* [x] a Linux setup with ASLR disabled;
+* [x] a CPU with the necessary counters;
+* [ ] a benchmark with deterministic _control flow_.
+
+This last one is the catch.  Normally when we say a program is "deterministic"
+we're referring to its observable output; but now the instruction count is
+part of the observable output!
+
+What does this mean in practice?  It means your program is allowed to
+_look_ at the clock, /dev/urandom, etc... but it's not allowed to _branch_
+on those things.  (Or, if it does, it had better make sure both branches
+have the same number of instrucctions.)
+
+This is a **very** hard pill to swallow, much harder than "simply" producing
+deterministic output.  For example, many hashmap implementations mix some
+randomness into their hashes.  A program which uses such a hashmap may
+have the exact same behaviour every time it's run, but if you measure its
+instruction count it will be different on every run.
+
+The rustc team have gone to great lengths to ensure that (single-threaded)
+rustc has this property.  For example, at some point rustc prints its own PID,
+and the formatting code branches based on the number of digits in the PID.
+This was a measureable source of variance and had to be fixed by padding
+the formatted PID with spaces.  Yikes!
+
+The conclusion: it _can_ be done; but if you're not willing to go all the
+way like the Rust project did, then IMO you should still be estimating a
+confidence interval.
+
+[measureme PR]: https://github.com/rust-lang/measureme/pull/143
+[measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
