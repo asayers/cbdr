@@ -4,7 +4,7 @@ use once_cell::sync::{Lazy, OnceCell};
 use serde::*;
 use std::fmt;
 
-static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(|| ArcSwap::default());
+static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(ArcSwap::default);
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
 pub struct Bench(pub usize);
@@ -15,7 +15,7 @@ impl From<&str> for Bench {
             Some(x) => Bench(x),
             None => {
                 let old = BENCH_CACHE.rcu(|cache| {
-                    let mut cache = Vec::clone(&cache);
+                    let mut cache = Vec::clone(cache);
                     cache.push(x.to_string());
                     cache
                 });

@@ -15,7 +15,7 @@ pub fn render(
     let mut first = true;
     for (from, to, diff) in diffs {
         if !first {
-            writeln!(out, "")?;
+            writeln!(out)?;
         } else {
             first = false;
         }

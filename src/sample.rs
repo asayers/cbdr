@@ -162,10 +162,10 @@ enum BenchRunner {
 impl fmt::Display for Benchmark {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(name) = &self.name {
-            f.write_str(&name)
+            f.write_str(name)
         } else {
             match &self.runner {
-                BenchRunner::Prog(x) => f.write_str(&x),
+                BenchRunner::Prog(x) => f.write_str(x),
                 BenchRunner::Script(x, args) => write!(f, "<{} {:?}>", x, args),
             }
         }
