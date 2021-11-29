@@ -1,6 +1,6 @@
 use crate::label::*;
 use crate::pretty;
-use anyhow::*;
+use anyhow::{bail, Result};
 use crossterm::tty::IsTty;
 use log::*;
 use std::time::*;

@@ -1,7 +1,7 @@
 use crate::analyze::*;
 use crate::label::*;
 use ansi_term::Style;
-use anyhow::*;
+use anyhow::Result;
 use std::fmt;
 use std::io::Write;
 

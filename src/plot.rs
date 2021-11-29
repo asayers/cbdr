@@ -1,5 +1,5 @@
 use crate::label::*;
-use anyhow::*;
+use anyhow::Result;
 use log::*;
 use serde_json::json;
 use structopt::StructOpt;
