@@ -1,5 +1,6 @@
 use anyhow::*;
 use std::collections::{BTreeMap, BTreeSet};
+use std::convert::Infallible;
 use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -35,8 +36,8 @@ pub struct Options {
 #[derive(Clone)]
 pub struct NamedString(Option<String>, String);
 impl FromStr for NamedString {
-    type Err = String;
-    fn from_str(x: &str) -> Result<NamedString, Self::Err> {
+    type Err = Infallible;
+    fn from_str(x: &str) -> Result<NamedString, Infallible> {
         let xs = x.splitn(2, ':').collect::<Vec<_>>();
         match &xs[..] {
             [x] => Ok(NamedString(None, x.to_string())),
