@@ -216,7 +216,7 @@ There are two things to consider:
 2. How much better is the variance, compared to wall time?
 
 In my experience, simply countring instructions doesn't correlate well enough,
-and counting CPU cycles is surprisingly high varience.  If you go down this
+and counting CPU cycles is surprisingly high variance.  If you go down this
 route I recommended you explore more sophisticated models, such as the one
 used by [cachegrind].
 
