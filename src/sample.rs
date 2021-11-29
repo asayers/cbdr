@@ -6,7 +6,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::time::Instant;
-use structopt::*;
+use structopt::StructOpt;
 use time_cmd::*;
 
 /// Repeatedly runs benchmarks chosen at random and prints results as CSV

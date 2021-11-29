@@ -1,7 +1,7 @@
 use ansi_term::{Color, Style};
 use arc_swap::ArcSwap;
 use once_cell::sync::{Lazy, OnceCell};
-use serde::*;
+use serde::{Serialize, Serializer};
 use std::fmt;
 
 static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(ArcSwap::default);

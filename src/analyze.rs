@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use crossterm::tty::IsTty;
 use log::*;
 use std::time::*;
-use structopt::*;
+use structopt::StructOpt;
 
 /// For each pair of benchmarks (x and y), shows, for each metric (̄x
 /// and ̄y), the CI of (̄y - ̄x) / ̄x
