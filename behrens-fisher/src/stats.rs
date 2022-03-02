@@ -49,20 +49,22 @@ impl Extend<f64> for StatsBuilder {
     }
 }
 
-/// Statictics for a sample taken from a normally-distributed population.
+/// Sample statictics.
+///
+/// Assumed to be taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Stats {
-    // The sample size
+pub struct SampleStats {
+    /// The sample size
     pub count: usize,
-    // The sample mean
+    /// The sample mean
     pub mean: f64,
-    // The sample variance
+    /// The sample variance
     pub var: f64,
 }
 
-impl From<StatsBuilder> for Stats {
-    fn from(x: StatsBuilder) -> Stats {
-        Stats {
+impl From<StatsBuilder> for SampleStats {
+    fn from(x: StatsBuilder) -> SampleStats {
+        SampleStats {
             count: x.count(),
             mean: x.mean(),
             var: x.sample_var(),
@@ -70,15 +72,15 @@ impl From<StatsBuilder> for Stats {
     }
 }
 
-impl FromIterator<f64> for Stats {
-    fn from_iter<T: IntoIterator<Item = f64>>(iter: T) -> Stats {
+impl FromIterator<f64> for SampleStats {
+    fn from_iter<T: IntoIterator<Item = f64>>(iter: T) -> SampleStats {
         let mut bldr = StatsBuilder::default();
         bldr.extend(iter);
         bldr.into()
     }
 }
 
-impl Stats {
+impl SampleStats {
     /// An estimate of the variance of `mean` (which is an estimate of the
     /// population mean).
     ///
@@ -97,17 +99,20 @@ mod tests {
 
     #[test]
     fn test() {
-        let stats = vec![1.0_f64, 2., 3.].into_iter().collect::<Stats>();
+        let stats = vec![1.0_f64, 2., 3.].into_iter().collect::<SampleStats>();
         assert_eq!(stats.count, 3);
         assert_eq!(stats.mean, 2.);
         assert_eq!(stats.var, 1.);
 
-        let stats = vec![0.0_f64, -2., 2.].into_iter().collect::<Stats>();
+        let stats = vec![0.0_f64, -2., 2.].into_iter().collect::<SampleStats>();
         assert_eq!(stats.count, 3);
         assert_eq!(stats.mean, 0.);
         assert_eq!(stats.var, 4.);
 
-        let stats = (0..=100).into_iter().map(f64::from).collect::<Stats>();
+        let stats = (0..=100)
+            .into_iter()
+            .map(f64::from)
+            .collect::<SampleStats>();
         assert_eq!(stats.count, 101);
         assert_eq!(stats.mean, 50.);
         assert_eq!(stats.var, 858.5);

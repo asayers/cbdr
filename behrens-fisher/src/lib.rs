@@ -20,8 +20,8 @@ use behrens_fisher::*;
 let x_sample: Vec<f64> = vec![1., 2., 3., 4.];
 let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
 
-let x_stats = x_sample.into_iter().collect::<Stats>();
-let y_stats = y_sample.into_iter().collect::<Stats>();
+let x_stats: SampleStats = x_sample.into_iter().collect();
+let y_stats: SampleStats = y_sample.into_iter().collect();
 let width = confidence_interval(0.95, x_stats, y_stats).unwrap();
 let msg = format!(
     "Δ = {:+.2} ± {:.2} (p=95%)",
@@ -60,7 +60,11 @@ pub use stats::*;
 /// The degrees of freedom for s² is n-1.  To compute the pooled degrees
 /// of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
 /// the Welch–Satterthwaite equation.
-pub fn confidence_interval(sig_level: f64, x: Stats, y: Stats) -> Result<f64, Error> {
+pub fn confidence_interval(
+    sig_level: f64,
+    x: SampleStats,
+    y: SampleStats,
+) -> Result<f64, Error> {
     // Prevent division by zero (see "degrees of freedom")
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
@@ -127,7 +131,7 @@ mod tests {
         pub radius: f64,
     }
     impl ConfidenceInterval {
-        fn new(sig_level: f64, x: Stats, y: Stats) -> ConfidenceInterval {
+        fn new(sig_level: f64, x: SampleStats, y: SampleStats) -> ConfidenceInterval {
             confidence_interval(sig_level, x, y)
                 .map(|radius| ConfidenceInterval {
                     center: y.mean - x.mean,
@@ -144,12 +148,12 @@ mod tests {
 
     #[test]
     fn cis() {
-        let s1 = Stats {
+        let s1 = SampleStats {
             count: 10,
             mean: 5.,
             var: 1.,
         };
-        let s2 = Stats {
+        let s2 = SampleStats {
             count: 10,
             mean: 6.,
             var: 2.25,
@@ -172,12 +176,12 @@ mod tests {
     #[test]
     fn onlinestatbook() {
         // From http://onlinestatbook.com/2/estimation/difference_means.html
-        let females = Stats {
+        let females = SampleStats {
             count: 17,
             mean: 5.353,
             var: 2.743f64,
         };
-        let males = Stats {
+        let males = SampleStats {
             count: 17,
             mean: 3.882,
             var: 2.985f64,
@@ -197,12 +201,12 @@ mod tests {
     #[test]
     fn zar() {
         // From Zar (1984) page 132
-        let x = Stats {
+        let x = SampleStats {
             count: 6,
             mean: 10.,
             var: (0.7206_f64).powf(2.),
         };
-        let y = Stats {
+        let y = SampleStats {
             count: 7,
             mean: 15.,
             var: (0.7206_f64).powf(2.),
@@ -216,12 +220,12 @@ mod tests {
     // #[test]
     // fn nist() {
     //     // From the worked example at https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm
-    //     let x = Stats {
+    //     let x = SampleStats {
     //         count: 100,
     //         mean: 10.,
     //         var: (0.022789).powf(2.),
     //     };
-    //     let y = Stats {
+    //     let y = SampleStats {
     //         count: 95,
     //         mean: 19.261460,
     //         var: (0.022789).powf(2.),
