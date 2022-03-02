@@ -23,8 +23,7 @@ let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
 let x_stats: SampleStats = x_sample.into_iter().collect();
 let y_stats: SampleStats = y_sample.into_iter().collect();
 let ci = difference_of_means(0.95, x_stats, y_stats).unwrap();
-let msg = format!("Δ = {} (p=95%)", ci);
-assert_eq!(msg, "Δ = +4.50 ± 3.89 (p=95%)");
+assert_eq!(ci.to_string(), "+4.50 ± 3.89 (p=95%)");
 // Looks like μ[Y] > μ[X]!
 ```
 
@@ -43,6 +42,8 @@ pub struct ConfidenceInterval {
     /// The half-width of the two-sided confidence interval; the `y` in
     /// `x ± y`.
     pub radius: f64,
+    /// The significance level
+    pub sig_level: f64,
 }
 
 impl fmt::Display for ConfidenceInterval {
@@ -121,6 +122,7 @@ pub fn difference_of_means(
     Ok(ConfidenceInterval {
         center,
         radius,
+        sig_level,
     })
 }
 
