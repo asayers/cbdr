@@ -38,6 +38,22 @@ mod stats;
 pub mod student_t;
 
 pub use stats::*;
+use std::fmt;
+
+#[derive(Clone, PartialEq, Debug, Copy)]
+pub struct ConfidenceInterval {
+    /// The center of the two-sided confidence interval; the `x` in `x ± y`.
+    pub center: f64,
+    /// The half-width of the two-sided confidence interval; the `y` in
+    /// `x ± y`.
+    pub radius: f64,
+}
+
+impl fmt::Display for ConfidenceInterval {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} ± {}", self.center, self.radius)
+    }
+}
 
 /// A confidence interval for `y.mean - x.mean`.  This function returns the
 /// half-width of the confidence interval, ie. the `i` in `y.mean - x.mean
@@ -110,7 +126,6 @@ pub enum Error {
     ZeroVariance,
 }
 
-use std::fmt;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -130,13 +145,7 @@ impl std::error::Error for Error {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt;
 
-    #[derive(Clone, PartialEq, Debug, Copy)]
-    struct ConfidenceInterval {
-        pub center: f64,
-        pub radius: f64,
-    }
     impl ConfidenceInterval {
         fn new(sig_level: f64, x: SampleStats, y: SampleStats) -> ConfidenceInterval {
             confidence_interval(sig_level, x, y)
@@ -145,11 +154,6 @@ mod tests {
                     radius,
                 })
                 .unwrap()
-        }
-    }
-    impl fmt::Display for ConfidenceInterval {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{} ± {}", self.center, self.radius)
         }
     }
 
