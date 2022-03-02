@@ -22,12 +22,8 @@ let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
 
 let x_stats: SampleStats = x_sample.into_iter().collect();
 let y_stats: SampleStats = y_sample.into_iter().collect();
-let width = confidence_interval(0.95, x_stats, y_stats).unwrap();
-let msg = format!(
-    "Δ = {:+.2} ± {:.2} (p=95%)",
-    y_stats.mean - x_stats.mean,
-    width,
-);
+let ci = confidence_interval(0.95, x_stats, y_stats).unwrap();
+let msg = format!("Δ = {} (p=95%)", ci);
 assert_eq!(msg, "Δ = +4.50 ± 3.89 (p=95%)");
 // Looks like μ[Y] > μ[X]!
 ```
@@ -62,9 +58,8 @@ impl fmt::Display for ConfidenceInterval {
     }
 }
 
-/// A confidence interval for `y.mean - x.mean`.  This function returns the
-/// half-width of the confidence interval, ie. the `i` in `y.mean - x.mean
-/// ± i`.
+/// An estimate of `μ_y - μ_x` (the difference in population means),
+/// based on samples taken from X and Y.
 ///
 /// Given two normally distributed populations X ~ N(μ_x, σ²_x) and Y ~
 /// N(μ_y, σ²_y), Y-X is distributed as N(μ_y - μ_x, σ²_x + σ²_y).
@@ -87,7 +82,7 @@ pub fn confidence_interval(
     sig_level: f64,
     x: SampleStats,
     y: SampleStats,
-) -> Result<f64, Error> {
+) -> Result<ConfidenceInterval, Error> {
     if sig_level <= 0.0 || sig_level >= 1.0 {
         return Err(Error::BadSigLevel);
     }
@@ -121,8 +116,12 @@ pub fn confidence_interval(
     assert!(v.is_normal()); // "normal" in the f64 sense, not gaussian!
     let t = student_t::inv_cdf(p, v);
 
+    let center = y.mean - x.mean;
     let radius = t * var_delta.sqrt();
-    Ok(radius)
+    Ok(ConfidenceInterval {
+        center,
+        radius,
+    })
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -155,12 +154,7 @@ mod tests {
 
     impl ConfidenceInterval {
         fn new(sig_level: f64, x: SampleStats, y: SampleStats) -> ConfidenceInterval {
-            confidence_interval(sig_level, x, y)
-                .map(|radius| ConfidenceInterval {
-                    center: y.mean - x.mean,
-                    radius,
-                })
-                .unwrap()
+            confidence_interval(sig_level, x, y).unwrap()
         }
     }
 
