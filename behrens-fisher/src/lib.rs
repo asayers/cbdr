@@ -59,6 +59,39 @@ impl fmt::Display for ConfidenceInterval {
     }
 }
 
+/// An estimate of μ_x (the population mean), based on a sample taken from X.
+pub fn mean(sig_level: f64, x: SampleStats) -> Result<ConfidenceInterval, Error> {
+    if sig_level <= 0.0 || sig_level >= 1.0 {
+        return Err(Error::BadSigLevel);
+    }
+    if !x.var.is_finite() {
+        return Err(Error::InfiniteVariance);
+    }
+    if x.var == 0. {
+        return Err(Error::ZeroVariance);
+    }
+
+    // Convert `sig_level`, which is two-sided, into `p`, which is one-sided
+    let alpha = 1. - sig_level;
+    let p = 1. - (alpha / 2.);
+
+    // The degrees of freedom of the mean variance
+    let v = x.count as f64 - 1.0;
+
+    // Compute the critical value at the chosen confidence level
+    assert!(p.is_normal()); // "normal" in the f64 sense, not gaussian!
+    assert!(v.is_normal()); // "normal" in the f64 sense, not gaussian!
+    let t = student_t::inv_cdf(p, v);
+
+    let center = x.mean;
+    let radius = t * x.mean_var().sqrt();
+    Ok(ConfidenceInterval {
+        center,
+        radius,
+        sig_level,
+    })
+}
+
 /// An estimate of `μ_y - μ_x` (the difference in population means),
 /// based on samples taken from X and Y.
 ///
