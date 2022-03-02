@@ -172,16 +172,20 @@ impl Measurements {
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
-pub struct DiffCI(pub behrens_fisher::Stats, pub behrens_fisher::Stats);
+pub struct DiffCI(
+    pub behrens_fisher::SampleStats,
+    pub behrens_fisher::SampleStats,
+);
 impl DiffCI {
     /// The confidence interval for the difference of the means, given as
     /// a percentage of the first mean.
     pub fn interval(self, sig_level: f64) -> (f64, f64) {
-        let width =
-            behrens_fisher::confidence_interval(sig_level, self.0, self.1).unwrap_or(std::f64::NAN);
-        let delta = self.1.mean - self.0.mean;
-        let left = 100. * (delta - width) / self.0.mean;
-        let right = 100. * (delta + width) / self.0.mean;
+        let ci = match behrens_fisher::difference_of_means(sig_level, self.0, self.1) {
+            Ok(x) => x,
+            Err(_) => return (std::f64::NAN, std::f64::NAN),
+        };
+        let left = 100. * (ci.center - ci.radius) / self.0.mean;
+        let right = 100. * (ci.center + ci.radius) / self.0.mean;
         (left, right)
     }
 }
