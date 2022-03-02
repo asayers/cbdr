@@ -22,7 +22,7 @@ let y_sample: Vec<f64> = vec![3., 5., 7., 9., 11.];
 
 let x_stats: SampleStats = x_sample.into_iter().collect();
 let y_stats: SampleStats = y_sample.into_iter().collect();
-let ci = confidence_interval(0.95, x_stats, y_stats).unwrap();
+let ci = difference_of_means(0.95, x_stats, y_stats).unwrap();
 let msg = format!("Δ = {} (p=95%)", ci);
 assert_eq!(msg, "Δ = +4.50 ± 3.89 (p=95%)");
 // Looks like μ[Y] > μ[X]!
@@ -78,7 +78,7 @@ impl fmt::Display for ConfidenceInterval {
 /// The degrees of freedom for s² is n-1.  To compute the pooled degrees
 /// of freedom of the linear combination s²_x/n_x + s²_y/n_y, we use
 /// the Welch–Satterthwaite equation.
-pub fn confidence_interval(
+pub fn difference_of_means(
     sig_level: f64,
     x: SampleStats,
     y: SampleStats,
@@ -154,7 +154,7 @@ mod tests {
 
     impl ConfidenceInterval {
         fn new(sig_level: f64, x: SampleStats, y: SampleStats) -> ConfidenceInterval {
-            confidence_interval(sig_level, x, y).unwrap()
+            difference_of_means(sig_level, x, y).unwrap()
         }
     }
 
