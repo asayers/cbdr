@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "cbdr"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "ansi_term 0.12.1",
  "anyhow",
