@@ -274,4 +274,4 @@ way like the Rust project did, then IMO you should still be estimating a
 confidence interval.
 
 [measureme PR]: https://github.com/rust-lang/measureme/pull/143
-[measureme writeup]: https://hackmd.io/sH315lO2RuicY-SEt7ynGA?view
+[measureme writeup]: instruction_count.md
