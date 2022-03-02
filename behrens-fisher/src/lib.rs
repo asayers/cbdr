@@ -51,7 +51,14 @@ pub struct ConfidenceInterval {
 
 impl fmt::Display for ConfidenceInterval {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ± {}", self.center, self.radius)
+        let prec = f.precision().unwrap_or(2);
+        write!(
+            f,
+            "{:+.prec$} ± {:.prec$} (p={}%)",
+            self.center,
+            self.radius,
+            self.sig_level * 100.0,
+        )
     }
 }
 
