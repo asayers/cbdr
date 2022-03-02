@@ -88,7 +88,7 @@ impl SampleStats {
     /// estimate is σ²/n, where n is the size of the sample.  Since we also
     /// don't know σ², we have to estimate the variance of the estimated
     /// mean by s²/n.
-    pub(crate) fn mean_var(self) -> f64 {
+    pub fn mean_var(self) -> f64 {
         self.var / self.count as f64
     }
 }
