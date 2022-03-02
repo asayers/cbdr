@@ -65,6 +65,9 @@ pub fn confidence_interval(
     x: SampleStats,
     y: SampleStats,
 ) -> Result<f64, Error> {
+    if sig_level <= 0.0 || sig_level >= 1.0 {
+        return Err(Error::BadSigLevel);
+    }
     // Prevent division by zero (see "degrees of freedom")
     if x.count < 2 || y.count < 2 {
         return Err(Error::NotEnoughData);
@@ -101,6 +104,7 @@ pub fn confidence_interval(
 
 #[derive(Debug, Clone, Copy)]
 pub enum Error {
+    BadSigLevel,
     NotEnoughData,
     InfiniteVariance,
     ZeroVariance,
@@ -110,6 +114,9 @@ use std::fmt;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Error::BadSigLevel => {
+                f.write_str("The significance level must be between 0 and 1 (exclusive)")
+            }
             Error::NotEnoughData => f.write_str("Can't compute CI when sample size is less than 2"),
             Error::InfiniteVariance => {
                 f.write_str("The variance of one of the samples is infinite")
