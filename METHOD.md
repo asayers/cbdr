@@ -88,7 +88,7 @@ take note of [Checking too many variables] on the main page.)
 ## Choosing a family of distributions
 
 Every time you run your benchmark you get a different result.  Those results
-form a distrubution.  You can find out what this distrubution looks like
+form a distribution.  You can find out what this distribution looks like
 by running the benchmark a large number of times and plotting a histogram
 (or better yet: a kernel density estimate).
 
