@@ -64,8 +64,8 @@ This has two advantages:
   You're benchmarking A and wondering if it's time to move on to B.  You can
   compute a confidence interval for the mean of A, but that doesn't really
   tell you how tight the confidence interval for the _difference of the means_
-  is going to be.  Just because you have a precice estimate of the mean for
-  commit A, it doesn't mean you're going to have enough data for a precice
+  is going to be.  Just because you have a precise estimate of the mean for
+  commit A, it doesn't mean you're going to have enough data for a precise
   estimate of the mean-difference.
 
 ### ❌ Saving old benchmark results for later use
