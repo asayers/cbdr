@@ -215,8 +215,8 @@ There are two things to consider:
 1. How well does your proxy correlate with wall time?
 2. How much better is the variance, compared to wall time?
 
-In my experience, simply countring instructions doesn't correlate well enough,
-and counting CPU cycles is surprisingly high variance.  If you go down this
+In my experience, simply counting instructions doesn't correlate well enough,
+and counting CPU cycles has surprisingly high variance.  If you go down this
 route I recommended you explore more sophisticated models, such as the one
 used by [cachegrind].
 
