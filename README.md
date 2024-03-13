@@ -222,6 +222,16 @@ confidence intervals will converge faster.
 
 [cachegrind]: https://valgrind.org/docs/manual/cg-manual.html
 
+### Measuring small changes to a program
+
+Nicholas Nethercote said this of instruction count:
+
+> You’d be mad to use it to compare the speed of two different programs,
+> but it is very useful for comparing two slightly different versions of
+> the same program, which are likely to have a similar instruction mix.
+
+[Source](https://nnethercote.github.io/2022/10/27/how-to-speed-up-the-rust-compiler-in-october-2022.html)
+
 ### Instruction count is ~~not determinisic~~ hard to make determinisic
 
 The idea of swapping wall time for something 100% determinisic is very
