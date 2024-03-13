@@ -35,9 +35,7 @@ interested in the method I actually use, which is described [here](METHOD.md).
 **If you're looking for `cbdr`, a tool which automates some of the advice
 given here, look [here](cbdr.md) instead.**
 
-## Part 1: Sampling
-
-### ❌ Benchmarking commit A, then benchmarking commit B
+## ❌ Benchmarking commit A, then benchmarking commit B
 
 Most benchmarking software I see takes a bunch of measurements of the first
 thing, then a bunch of measurements of the second thing, then performs some
@@ -68,7 +66,7 @@ This has two advantages:
   commit A, it doesn't mean you're going to have enough data for a precise
   estimate of the mean-difference.
 
-### ❌ Saving old benchmark results for later use
+## ❌ Saving old benchmark results for later use
 
 This is just a more extreme version of "benchmarking commit A, then
 benchmarking commit B", except now your results are correlated with sources of
@@ -87,7 +85,7 @@ Re-benchmarking old commits feels like a waste of CPU-time; but your CI
 machines will spend - at most - 2x longer on benchmarking.  Is that _really_
 a resource you need to claw back?
 
-### ⚠ Checking-in benchmark thresholds
+## ⚠ Checking-in benchmark thresholds
 
 Some projects keep benchmark thresholds checked in to their repo, and fail
 in CI when those thresholds are exceeded.  If the slowdown is expected,
@@ -108,9 +106,7 @@ seen as a nuisance.
 
 [GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
 
-## Part 2: Analysis
-
-### ❌ Plotting the results and eyeballing the difference
+## ❌ Plotting the results and eyeballing the difference
 
 This is a fine way to benchmark, actually!  Sure, it's not exactly _rigorous_,
 but on the plus side it's pretty hard to screw up.  However, this page is
@@ -123,7 +119,7 @@ histograms like at the top of this page, or violin plots, or a heatmap.
 Any of those will let you see at a glance how your benchmark is behaving.
 (FYI [cbdr](cbdr.md) has functionality to help with this.)
 
-### ❌ Computing the two means and comparing them
+## ❌ Computing the two means and comparing them
 
 This is not a great idea, even when confidence intervals are included.
 Quoting the [Biostats handbook]:
@@ -141,7 +137,7 @@ Quoting the [Biostats handbook]:
 
 [Biostats handbook]: http://www.biostathandbook.com/confidence.html
 
-### ⚠️ Beware "±"
+## ⚠️ Beware "±"
 
 Just because a benchmarking library prints its output with a "± x" doesn't
 mean it's computing a confidence interval.  "±" often denotes a standard
@@ -152,7 +148,7 @@ Having the variance of the measurements is well and good, but it doesn't
 help you decide whether the result is significant.  If the docs don't specify
 the meaning, you could try grepping the source for mention of an "inverse CDF".
 
-## Part 3: Validation vs exploration
+## ❌ Using profiling tools to benchmark
 
 We don't need to get too fancy here: all you need is one good macro-benchmark
 and a stopwatch.
@@ -174,7 +170,7 @@ If the answer is "yes", well _now_ it's time for [sample-based profiling],
 [tracy]: https://github.com/wolfpld/tracy
 [CPU emulation]: https://valgrind.org/docs/manual/cg-manual.html
 
-### ❌ Checking too many variables
+## ❌ Checking too many variables
 
 If your benchmark measures multiple things (eg. wall time and max RSS) then you
 probably want to check all of them to make sure that that nothing has regressed.
@@ -189,7 +185,7 @@ you'll get so many false positives that you'll start ignoring CI failures.
 Instead, CI should just check overall performance.  If there's a regression, you
 crack out the microbenchmarks to figure out what caused it.
 
-### ❌ Concatenating results from different benchmarks
+## ❌ Concatenating results from different benchmarks
 
 The method above involves running a "good macrobenchmark".  Suppose you don't
 have one of those, but you _do_ have lots of good microbenchmarks.  How about
