@@ -83,7 +83,7 @@ you need to add on an extra x%, where x is somewhere between 15.9% and 18%.
 
 Let's look at the table comparing md5 to sha1.  Judging by wall-clock time,
 sha1 looks like it's about 17% slower than md5, doesn't it?  So we go ahead
-and tell our colleages:
+and tell our colleagues:
 
 > I benchmarked sha1 against md5 and found that it was 17% slower.
 
@@ -92,7 +92,7 @@ interval instead!
 
 > By wall-clock time, sha1 was 16-18% slower than md5 (α=99.9%).
 
-Now our colleages have some idea of how good the benchmark was.  Note how
+Now our colleagues have some idea of how good the benchmark was.  Note how
 we also reported the alpha-value.  `cbdr analyze` lets you customize this
 parameter with the `--significance` option, but it defaults to 99.9%.
 

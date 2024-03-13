@@ -1,6 +1,6 @@
 [package]
 name = "cbdr"
-description = "Tools for comparitive benchmarking"
+description = "Tools for comparative benchmarking"
 version = "0.2.4"
 authors = ["Alex Sayers <alex@asayers.com>"]
 edition = "2021"

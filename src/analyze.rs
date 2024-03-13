@@ -21,7 +21,7 @@ pub struct Options {
     /// A "base" label.  If specified, all labels will be compared to this.
     #[structopt(long)]
     pub base: Option<String>,
-    /// Benchs to compare.  If "base" is not specified, they'll be compared
+    /// Benchmarks to compare.  If "base" is not specified, they'll be compared
     /// consecutively.
     pub labels: Vec<String>,
 }

@@ -36,7 +36,7 @@ base      , 15.992080634
 
 This doesn't need to be anything fancy: `/usr/bin/time --format "$branch,%e"
 --append --output bench.csv $branch/bench.sh` has you covered - it's not
-the most precice thing in the world but it's probably good enough.
+the most precise thing in the world but it's probably good enough.
 
 ### Computing a confidence interval
 

@@ -6,7 +6,7 @@ mod sample;
 
 use structopt::StructOpt;
 
-/// Tools for comparitive benchmarking
+/// Tools for comparative benchmarking
 #[derive(StructOpt)]
 enum Subcommand {
     Sample(sample::Options),

@@ -217,7 +217,7 @@ Long-term we may want to make `rustc`'s use of pointer hashing more intrinsicall
 
 When profiling a `rustc` compilation which uses proc macros, they may contain arbitrary user code, including sources of randomness and IO. The easiest way this can impact the rest of `rustc` is through introducing ASLR-like effects with non-deterministic allocation sizes.
 
-For example, the very-widely-used `serde_derive` proc macro happens to use `HashSet`, which by default uses a randomized hash (just like `HashMap`), and that will result in different (re)allocation patterns of the `HashSet` heap data, effectivelly randomizing any heap addresses allocated afterwards (by other parts of `rustc`).
+For example, the very-widely-used `serde_derive` proc macro happens to use `HashSet`, which by default uses a randomized hash (just like `HashMap`), and that will result in different (re)allocation patterns of the `HashSet` heap data, effectively randomizing any heap addresses allocated afterwards (by other parts of `rustc`).
 
 In order to fully eliminate ASLR-like effects due to the use of `HashMap`/`HashSet` in proc macros, during testing and data collection, we had to temporarily change the behavior of `std::collections::hash_map::RandomState` to *not* use the `getrandom` syscall.
 
@@ -247,7 +247,7 @@ The initial implementation doesn't support reading the counter from threads othe
 
 This works for `cargo check` (i.e. `rustc --emit=metadata`) compilations, and those were our main focus, as `-Z self-profile` is most fine-grained (i.e. at the query level) in the "check" part of the compilation. It could be possible to measure LLVM as well using `-Z no-llvm-threads`, but we haven't confirmed this works reliably.
 
-Additionally, it's harder to get determinstic and comparable results if multiple threads are involved, though queries themselves could remain pretty stable (except for unpredictable allocation in other threads inducing an ASLR-like effect).
+Additionally, it's harder to get deterministic and comparable results if multiple threads are involved, though queries themselves could remain pretty stable (except for unpredictable allocation in other threads inducing an ASLR-like effect).
 
 Long-term, we should try to do (at least) one of:
 * refactor `rustc` to hold one "profiler handle" (with its own counter) per-thread
@@ -405,7 +405,7 @@ For the `rdpmc-bench.rs` synthetic benchmark, after subtracting IRQs we stopped 
     * this machine may have an unfair advantage, i.e. its 48 hardware threads, 6-12x more than the Intel CPUs we looked at
     * long term we could look at intensive stress testing, using several times more userspace threads than hardware threads, to hunt down remaining non-determinism, but we haven't seen any evidence to suggest there could be any left
 
-However, subtracting IRQs mostly didn't impact the (up to ±10k) noise we were seeing when compiling libcore, as the IRQ-driven overcounting stayed within a few hundred instructions between different runs, most of the time (though it did help with the occassional outlier).
+However, subtracting IRQs mostly didn't impact the (up to ±10k) noise we were seeing when compiling libcore, as the IRQ-driven overcounting stayed within a few hundred instructions between different runs, most of the time (though it did help with the occasional outlier).
 
 And that's because...
 

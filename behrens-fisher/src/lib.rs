@@ -233,7 +233,7 @@ mod tests {
         let ci = difference_of_means(0.95, males, females).unwrap();
         assert_eq!(ci.center, 1.4709999999999996);
         assert_eq!(ci.radius, 1.1824540265693935);
-        // the orginal example has it as 1.4709999999999996 ± 1.1824540265693928
+        // the original example has it as 1.4709999999999996 ± 1.1824540265693928
         // the last two digits are different - probably just a rounding error
     }
 

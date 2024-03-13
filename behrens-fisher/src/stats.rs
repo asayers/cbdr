@@ -49,7 +49,7 @@ impl Extend<f64> for StatsBuilder {
     }
 }
 
-/// Sample statictics.
+/// Sample statistics.
 ///
 /// Assumed to be taken from a normally-distributed population.
 #[derive(Clone, Copy, Debug, PartialEq)]
