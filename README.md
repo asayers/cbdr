@@ -94,17 +94,18 @@ in CI when those thresholds are exceeded.  If the slowdown is expected,
 you update the thresholds in the same PR.  The idea is that it allows you
 to detect slow, long-term performance creep.  It's a nice idea.
 
-I've already argued against storing old benchmark results generally, but we
-can fix that: instead of checking in results, we could check in a reference
-to some old version of the code to benchmark against.
+(Sidenote: I've already argued against storing old benchmark results generally,
+but we can fix that: instead of checking in results, we could check in a
+reference to some old version of the code to benchmark against.)
 
-This scheme does indeed allow you to detect performance creep.  However,
-this kind of creep is very rarely actionable.  Usually the failing commit
-isn't _really_ to blame - it's just the straw that broke the camel's back -
-so in practice you just update the threshold and move on.  Once this becomes
-a habit, your benchmarks are useless.  The GHC people had a system like this
-in place for a long time but [recently ditched it][GHC] because it was just
-seen as a nuisance.
+This scheme does indeed allow you to detect performance creep.  The problem,
+though, is that when you _do_ detect is, there's rarely anything you can do
+about it. The failing commit isn't _really_ to blame - it's just the straw that
+broke the camel's back. So in practice you just update the threshold and move
+on.  Once this becomes a habit, your benchmarks are useless.
+
+The GHC people had a system like this in place for a long time but [recently
+ditched it][GHC] because it was just seen as a nuisance.
 
 [GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
 
