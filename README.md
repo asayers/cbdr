@@ -109,19 +109,6 @@ ditched it][GHC] because it was just seen as a nuisance.
 
 [GHC]: https://gitlab.haskell.org/ghc/ghc/wikis/performance/tests
 
-## ❌ Plotting the results and eyeballing the difference
-
-This is a fine way to benchmark, actually!  Sure, it's not exactly _rigorous_,
-but on the plus side it's pretty hard to screw up.  However, this page is
-about running benchmarks as part of your CI, so anything which requires a
-human-in-the-loop is automatically out.
-
-Do try plotting your raw benchmark data, though, just as a sanity check
-(especially when first setting up your benchmarking CI).  You could plot
-histograms like at the top of this page, or violin plots, or a heatmap.
-Any of those will let you see at a glance how your benchmark is behaving.
-(FYI [cbdr](cbdr.md) has functionality to help with this.)
-
 ## ❌ Computing the two means and comparing them
 
 This is not a great idea, even when confidence intervals are included.
@@ -139,6 +126,19 @@ Quoting the [Biostats handbook]:
 > comparing their confidence intervals, just use the correct statistical test.
 
 [Biostats handbook]: http://www.biostathandbook.com/confidence.html
+
+## ⚠ Plotting the results and eyeballing the difference
+
+This is a fine way to benchmark, actually!  Sure, it's not exactly _rigorous_,
+but on the plus side it's pretty hard to screw up.  However, this page is
+about running benchmarks as part of your CI, so anything which requires a
+human-in-the-loop is automatically out.
+
+Do try plotting your raw benchmark data, though, just as a sanity check
+(especially when first setting up your benchmarking CI).  You could plot
+histograms like at the top of this page, or violin plots, or a heatmap.
+Any of those will let you see at a glance how your benchmark is behaving.
+(FYI [cbdr](cbdr.md) has functionality to help with this.)
 
 ## ⚠️ Beware "±"
 
