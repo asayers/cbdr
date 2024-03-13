@@ -37,34 +37,36 @@ given here, look [here](cbdr.md) instead.**
 
 ## ❌ Benchmarking commit A, then benchmarking commit B
 
-Most benchmarking software I see takes a bunch of measurements of the first
-thing, then a bunch of measurements of the second thing, then performs some
-analysis on the two samples.  I suggest that you don't do this; instead,
-randomly pick one of your commits to measure each time you do a run.
-This has two advantages:
+Most benchmarking software I see works like this:
 
-* **When results are correlated with time, they're correlated with time-varying noise.**
+1. It takes a bunch of measurements of the first thing.
+2. It takes a bunch of measurements of the second thing.
+3. It compares the two samples.
 
-  Imagine you finish benchmarking commit A on a quiet machine, but then a cron
-  jobs starts just as you start benchmarking commit B; the penalty is absorbed
-  entirely by commit B!  This applies to intermittent noise which varies at
-  the second- or minute-scale, which is very common in benchmarking rigs.
+**Why is this bad?**
+Imagine you finish benchmarking commit A on a quiet machine, but then a cron
+jobs starts just as you start benchmarking commit B; the penalty is absorbed
+entirely by commit B!
 
-  On the other hand, if you randomize the measurements then the penalty of
-  the cron job in the example above will be even spread across both commits.
-  It will hurt the precision of your results, but not the accuracy.
-* **You can keep sampling until you achieve your desired presicion.**
+**So what should I do instead?**
+I suggest that you randomly intersperse runs from the two things
+you're comparing.
+Consider the example above: if you randomize the measurements then the penalty
+of the cron job will be evenly spread across both commits.  It will hurt the
+_precision_ of your results, but not the _accuracy_ (which is more important).
 
-  After each sample, you look at how wide the confidence interval of the
-  mean-difference is, and if it's too wide you take another measurement.
+And there's a bonus: you can keep sampling until you achieve your desired
+precision.  After each sample, you look at how wide the confidence interval
+of the mean-difference is.  If it's too wide you keep taking samples; if
+it's narrow enough, you stop.
 
-  Suppose, on the other hand, you perform the measurements in order.
-  You're benchmarking A and wondering if it's time to move on to B.  You can
-  compute a confidence interval for the mean of A, but that doesn't really
-  tell you how tight the confidence interval for the _difference of the means_
-  is going to be.  Just because you have a precise estimate of the mean for
-  commit A, it doesn't mean you're going to have enough data for a precise
-  estimate of the mean-difference.
+(Suppose, on the other hand, you group your measurements as described at
+the start.  You're benchmarking A and wondering if it's time to move on to B.
+You can compute a confidence interval for the mean of A, but that doesn't
+really tell you how tight the confidence interval for the _difference of the
+means_ is going to be.  Just because you have a precise estimate of the mean
+for commit A, it doesn't mean you're going to have enough data for a precise
+estimate of the mean-difference.)
 
 ## ❌ Saving old benchmark results for later use
 
