@@ -150,17 +150,18 @@ are significant.
 
 ## ❌ Using profiling tools to benchmark
 
-We don't need to get too fancy here: all you need is one good macro-benchmark
-and a stopwatch.
-
 Consider your test suite.  It's there to answer one question: "is it broken?".
-If the answer is "yes", then it's time to crack out the debugger to find
-out _what exactly_ is broken.
+If the answer is "no" then you're good to go.  If it comes back with a "yes",
+well, now we need to find out _why_ the tests are broken - it's time to crack
+out the debugger and start poking around.
 
-Likewise, we're just trying to answer the question: "did it get slower?".
-If the answer is "yes", well _now_ it's time for [sample-based profiling],
-[heap profiling], [causal profiling], [frame profiling][tracy],
-[micro-benchmarks], [CPU emulation], etc. etc..
+The same applies to benchmarking.  If you want to know _why_ your code is slow,
+then you may want to employ the heavy machinery: [sample-based profiling], [heap
+profiling], [causal profiling], [frame profiling][tracy], [micro-benchmarks],
+[CPU emulation], etc. etc..
+
+But for CI purposes, we only need to answer the question: "_did_ it get
+slower?". For this, all you need is one good macro-benchmark and a stopwatch.
 
 [sample-based profiling]: https://github.com/KDAB/hotspot
 [heap profiling]: https://github.com/KDE/heaptrack
