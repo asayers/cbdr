@@ -142,14 +142,11 @@ Any of those will let you see at a glance how your benchmark is behaving.
 
 ## ⚠️ Beware "±"
 
-Just because a benchmarking library prints its output with a "± x" doesn't
-mean it's computing a confidence interval.  "±" often denotes a standard
-deviation, or some percentile; but it could mean anything, really, since the
-"±" symbol doesn't have a standardized meaning.
-
-Having the variance of the measurements is well and good, but it doesn't
-help you decide whether the result is significant.  If the docs don't specify
-the meaning, you could try grepping the source for mention of an "inverse CDF".
+Just because a benchmarking library prints its output with a "± x" doesn't mean
+it's computing a confidence interval.  "±" often denotes a standard deviation,
+or some percentile; but it could mean anything, really. Having the standard
+deviation is well and good, but it doesn't exactly tell you whether your results
+are significant.
 
 ## ❌ Using profiling tools to benchmark
 
