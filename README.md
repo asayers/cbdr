@@ -87,7 +87,7 @@ Re-benchmarking old commits feels like a waste of CPU-time; but your CI
 machines will spend - at most - 2x longer on benchmarking.  Is that _really_
 a resource you need to claw back?
 
-## ⚠ Checking-in benchmark thresholds
+## ⚠️ Checking-in benchmark thresholds
 
 Some projects keep benchmark thresholds checked in to their repo, and fail
 in CI when those thresholds are exceeded.  If the slowdown is expected,
