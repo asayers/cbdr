@@ -56,6 +56,10 @@ pub fn analyze(opts: Options) -> Result<()> {
     if opts.significance < 1. {
         warn!("Significance level is given as a percentage");
     }
+    if let Some(x) = &opts.base {
+        let _ = Bench::from(x.as_str());
+    }
+
     let mut rdr = csv::Reader::from_reader(std::io::stdin());
     let mut headers = rdr.headers().unwrap().into_iter();
     let first = headers.next().unwrap();
