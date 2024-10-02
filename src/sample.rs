@@ -187,9 +187,12 @@ fn run_bench(bench: &Benchmark) -> Result<BTreeMap<String, f64>> {
                 bail!("{}: Benchmark exited non-zero ({})", bench, x);
             }
             let mut ret = BTreeMap::default();
-            ret.insert("wall_clock_secs".into(), timings.wall_time.as_secs_f64());
-            ret.insert("user_cpu_secs".into(), timings.user_time);
-            ret.insert("kernel_cpu_secs".into(), timings.sys_time);
+            ret.insert(
+                "wall_clock_millis".into(),
+                timings.wall_time.as_secs_f64() * 1000.0,
+            );
+            ret.insert("user_cpu_millis".into(), timings.user_time * 1000.0);
+            ret.insert("kernel_cpu_millis".into(), timings.sys_time * 1000.0);
             Ok(ret)
         }
         BenchRunner::Script(script, args) => {
