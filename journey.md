@@ -26,13 +26,13 @@ Well... obviously this isn't very practical, so let's compute it for them:
 
 ```
 dump_pcap:
-    task_clock:          288.056 ->  288.056
-    mega-cycles:        1231.419 -> 1231.419
-    mega-instructions:  2075.278 -> 2075.278
+    task_clock:          288.056 ->  328.506
+    mega-cycles:        1231.419 -> 2231.419
+    mega-instructions:  2075.278 -> 3075.738
 compute_checksums:
-    task_clock:            1.557 ->    1.557
-    mega-cycles:           6.503 ->    6.503
-    mega-instructions:     6.467 ->    6.467
+    task_clock:            1.557 ->    1.957
+    mega-cycles:           6.503 ->    7.806
+    mega-instructions:     6.467 ->    7.628
 ```
 
 A bit better... but we all know these values are going to be so noise that
@@ -43,13 +43,13 @@ the sample size.)
 
 ```
 dump_pcap:
-    task_clock:          288.056 ±  21.805 ->  328.506 ±  28.085
-    mega-cycles:        1231.419 ± 102.141 -> 2231.419 ± 132.114
-    mega-instructions:  2075.278 ± 320.527 -> 3075.738 ± 270.357
+    task_clock:          288.056 (±  21.805) ->  328.506 (±  28.085)
+    mega-cycles:        1231.419 (± 102.141) -> 2231.419 (± 132.114)
+    mega-instructions:  2075.278 (± 320.527) -> 3075.738 (± 270.357)
 compute_checksums:
-    task_clock:            1.557 ±   0.255 ->    1.957 ±   0.716
-    mega-cycles:           6.503 ±   0.560 ->    7.806 ±   0.406
-    mega-instructions:     6.467 ±   0.646 ->    7.628 ±   0.466
+    task_clock:            1.557 (±   0.255) ->    1.957 (±   0.716)
+    mega-cycles:           6.503 (±   0.560) ->    7.806 (±   0.406)
+    mega-instructions:     6.467 (±   0.646) ->    7.628 (±   0.466)
 ```
 
 But what we really want to know is whether the values have changed, and
@@ -60,13 +60,13 @@ into a percentage of the base as well.
 
 ```
 dump_pcap:
-    task_clock:         +14.042% ± 0.197%
-    mega-cycles:        +81.207% ± 0.207%
-    mega-instructions:  +48.208% ± 0.230%
+    task_clock:         +14.042% (± 0.197%)
+    mega-cycles:        +81.207% (± 0.207%)
+    mega-instructions:  +48.208% (± 0.230%)
 compute_checksums:
-    task_clock:         +25.690% ± 0.559%
-    mega-cycles:        +20.036% ± 0.186%
-    mega-instructions:  +17.952% ± 0.171%
+    task_clock:         +25.690% (± 0.559%)
+    mega-cycles:        +20.036% (± 0.186%)
+    mega-instructions:  +17.952% (± 0.171%)
 ```
 
 This is starting to look a bit easier to read... but it's still hard to know
@@ -74,9 +74,10 @@ whether these values are statistically significant.  I mean, it looks like
 the clock times have gone up - but do we have enough data to be confident?
 
 This sounds like a hypothesis test to me.  Specifically, we're want to know
-whether the means of two distributions are the same.  The distributions
-may have different variances, but we can assume that they're roughly normal
-(benchmark results usually are).  For this, we need Welch's t-test.
+whether the means of two distributions are the same.  The distributions may have
+different variances, but we can assume that they're roughly normal (benchmark
+results are usually skewed, so it's not the most realistic choice - but it'll
+do).  For this, we need Welch's t-test.
 
 Since we're interested in how much the values have changed, as well as whether
 they're different, we want to show confidence intervals rather than p-values.

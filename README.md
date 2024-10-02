@@ -232,7 +232,7 @@ Nicholas Nethercote said this of instruction count:
 
 [Source](https://nnethercote.github.io/2022/10/27/how-to-speed-up-the-rust-compiler-in-october-2022.html)
 
-### Instruction count is ~~not deterministic~~ hard to make deterministic
+### Making instruction count deterministic is ~~impossible~~ hard
 
 The idea of swapping wall time for something 100% deterministic is very
 tempting, because it means you can do away with all this statistical nonsense
