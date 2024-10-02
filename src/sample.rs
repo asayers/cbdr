@@ -40,12 +40,11 @@ pub struct NamedString(Option<String>, String);
 impl FromStr for NamedString {
     type Err = Infallible;
     fn from_str(x: &str) -> Result<NamedString, Infallible> {
-        let xs = x.splitn(2, ':').collect::<Vec<_>>();
-        match &xs[..] {
-            [x] => Ok(NamedString(None, x.to_string())),
-            [name, x] => Ok(NamedString(Some(name.to_string()), x.to_string())),
-            _ => unreachable!(),
-        }
+        let (name, x) = match x.split_once(':') {
+            Some((name, x)) => (Some(name), x),
+            None => (None, x),
+        };
+        Ok(NamedString(name.map(|x| x.to_string()), x.to_string()))
     }
 }
 
