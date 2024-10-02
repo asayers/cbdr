@@ -40,7 +40,7 @@ impl Options {
             Box::new(
                 self.labels_in_order()
                     .filter(move |x| *x != base)
-                    .map(move |x| (x, base)),
+                    .map(move |x| (base, x)),
             )
         } else {
             Box::new(self.labels_in_order().zip(self.labels_in_order().skip(1)))
