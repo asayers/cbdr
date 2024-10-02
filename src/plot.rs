@@ -6,6 +6,7 @@ use serde_json::json;
 
 /// Takes CSV data on stdin and produces a vega-lite plot specification on stdout
 #[derive(Bpaf)]
+#[bpaf(command("plot"))]
 pub struct Options {
     omit_data: bool,
 }

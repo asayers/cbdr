@@ -9,11 +9,8 @@ use bpaf::{Bpaf, Parser};
 /// Tools for comparative benchmarking
 #[derive(Bpaf)]
 enum Subcommand {
-    #[bpaf(command)]
     Sample(#[bpaf(external(sample::options))] sample::Options),
-    #[bpaf(command)]
     Analyze(#[bpaf(external(analyze::options))] analyze::Options),
-    #[bpaf(command)]
     Plot(#[bpaf(external(plot::options))] plot::Options),
 }
 

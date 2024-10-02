@@ -11,6 +11,7 @@ use time_cmd::*;
 
 /// Repeatedly runs benchmarks chosen at random and prints results as CSV
 #[derive(Bpaf)]
+#[bpaf(command("sample"))]
 pub struct Options {
     /// A benchmark script to use.  Labels will be passed as $1
     #[bpaf(long, short, argument("PATH"))]

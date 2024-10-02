@@ -9,6 +9,7 @@ use std::time::*;
 /// For each pair of benchmarks (x and y), shows, for each metric (x̄
 /// and ȳ), the CI of (ȳ - x̄) / x̄
 #[derive(Bpaf)]
+#[bpaf(command("analyze"))]
 pub struct Options {
     /// The significance level of the confidence intervals
     #[bpaf(long, short, argument("P-VALUE"), fallback(99.9), display_fallback)]
