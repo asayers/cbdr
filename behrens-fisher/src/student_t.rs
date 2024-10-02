@@ -5,7 +5,7 @@ use special::Beta;
 /// `p` is the cumulative probability, and `dof` (aka. "ν") is the degrees
 /// of freedom (a parameter of the distribution).
 pub fn inv_cdf(p: f64, dof: f64) -> f64 {
-    assert!(p >= 0.0 && p <= 1.0);
+    assert!((0.0..=1.0).contains(&p));
     let x = 2. * p.min(1. - p);
     let a = 0.5 * dof;
     let b = 0.5;
@@ -160,7 +160,10 @@ mod tests {
         assert_rel_eq!(0.9, 011.0, 1.363);
         assert_rel_eq!(0.95, 011.0, 1.796);
         assert_rel_eq!(0.975, 011.0, 2.201);
-        assert_rel_eq!(0.99, 011.0, 2.718);
+        assert_rel_eq!(0.99, 011.0, {
+            #[allow(clippy::approx_constant)] // Clippy thinks this looks like e
+            2.718
+        });
         assert_rel_eq!(0.995, 011.0, 3.106);
         assert_rel_eq!(0.9975, 011.0, 3.497);
         assert_rel_eq!(0.999, 011.0, 4.025);

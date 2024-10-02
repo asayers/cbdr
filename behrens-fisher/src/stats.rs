@@ -109,10 +109,7 @@ mod tests {
         assert_eq!(stats.mean, 0.);
         assert_eq!(stats.var, 4.);
 
-        let stats = (0..=100)
-            .into_iter()
-            .map(f64::from)
-            .collect::<SampleStats>();
+        let stats = (0..=100).map(f64::from).collect::<SampleStats>();
         assert_eq!(stats.count, 101);
         assert_eq!(stats.mean, 50.);
         assert_eq!(stats.var, 858.5);
