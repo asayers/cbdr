@@ -4,14 +4,17 @@ mod plot;
 mod pretty;
 mod sample;
 
-use structopt::StructOpt;
+use bpaf::{Bpaf, Parser};
 
 /// Tools for comparative benchmarking
-#[derive(StructOpt)]
+#[derive(Bpaf)]
 enum Subcommand {
-    Sample(sample::Options),
-    Analyze(analyze::Options),
-    Plot(plot::Options),
+    #[bpaf(command)]
+    Sample(#[bpaf(external(sample::options))] sample::Options),
+    #[bpaf(command)]
+    Analyze(#[bpaf(external(analyze::options))] analyze::Options),
+    #[bpaf(command)]
+    Plot(#[bpaf(external(plot::options))] plot::Options),
 }
 
 fn main() {
@@ -19,7 +22,7 @@ fn main() {
         std::env::set_var("RUST_LOG", "warn");
     }
     env_logger::init();
-    let result = match Subcommand::from_args() {
+    let result = match subcommand().run() {
         Subcommand::Sample(opts) => sample::sample(opts),
         Subcommand::Analyze(opts) => analyze::analyze(opts),
         Subcommand::Plot(opts) => plot::plot(opts),

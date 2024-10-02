@@ -1,13 +1,12 @@
 use crate::label::*;
 use anyhow::Result;
+use bpaf::Bpaf;
 use log::*;
 use serde_json::json;
-use structopt::StructOpt;
 
 /// Takes CSV data on stdin and produces a vega-lite plot specification on stdout
-#[derive(StructOpt)]
+#[derive(Bpaf)]
 pub struct Options {
-    #[structopt(long)]
     omit_data: bool,
 }
 

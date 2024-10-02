@@ -1,28 +1,28 @@
 use crate::label::*;
 use crate::pretty;
 use anyhow::{bail, Result};
+use bpaf::Bpaf;
 use crossterm::tty::IsTty;
 use log::*;
 use std::time::*;
-use structopt::StructOpt;
 
 /// For each pair of benchmarks (x and y), shows, for each metric (̄x
 /// and ̄y), the CI of (̄y - ̄x) / ̄x
-#[derive(StructOpt)]
+#[derive(Bpaf)]
 pub struct Options {
     /// The significance level of the confidence intervals
-    #[structopt(long, short, default_value = "99.9")]
+    #[bpaf(long, short, argument("P-VALUE"), fallback(99.9), display_fallback)]
     significance: f64,
     // /// The target CI width.  Applies to the 95% CI; units are percent of base.
     // #[structopt(long)]
     // threshold: Option<f64>,
-    #[structopt(long)]
     deny_positive: bool,
     /// A "base" label.  If specified, all labels will be compared to this.
-    #[structopt(long)]
+    #[bpaf(argument("LABEL"))]
     pub base: Option<String>,
     /// Benchmarks to compare.  If "base" is not specified, they'll be compared
     /// consecutively.
+    #[bpaf(positional("LABEL"))]
     pub labels: Vec<String>,
 }
 impl Options {

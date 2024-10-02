@@ -1,4 +1,5 @@
 use anyhow::{bail, Context, Result};
+use bpaf::Bpaf;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 use std::fmt;
@@ -6,31 +7,32 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::time::Instant;
-use structopt::StructOpt;
 use time_cmd::*;
 
 /// Repeatedly runs benchmarks chosen at random and prints results as CSV
-#[derive(StructOpt)]
+#[derive(Bpaf)]
 pub struct Options {
     /// A benchmark script to use.  Labels will be passed as $1
-    #[structopt(long, short)]
+    #[bpaf(long, short, argument("PATH"))]
     pub bench: Option<String>,
     /// These benchmarks will be run in a shell and their output will be used to compute stats
-    #[structopt(long, short)]
+    #[bpaf(long, short)]
+    #[bpaf(argument("PATH"))]
     pub scripts: Vec<NamedString>,
-    /// If a script is given as --bench, these will be passed to it as $1;
-    /// if not, these will be treated like --script arguments.
-    pub targets: Vec<NamedString>,
     /// Automatically exit after this length of time has elapsed.
     /// Takes free-form input, eg. "1m20s".
-    #[structopt(long, short)]
+    #[bpaf(long, short, argument("DURATION"))]
     pub timeout: Option<humantime::Duration>,
     /// A target labeled "before".  "--before=foo" is equivalent to "before:foo".
-    #[structopt(long)]
+    #[bpaf(argument("BENCH"))]
     pub before: Option<String>,
     /// A target labeled "after".  "--after=foo" is equivalent to "after:foo".
-    #[structopt(long)]
+    #[bpaf(argument("BENCH"))]
     pub after: Option<String>,
+    /// If a script is given as --bench, these will be passed to it as $1;
+    /// if not, these will be treated like --script arguments.
+    #[bpaf(positional("BENCH"))]
+    pub targets: Vec<NamedString>,
 }
 
 #[derive(Clone)]
