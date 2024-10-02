@@ -26,7 +26,7 @@ impl StatsBuilder {
 
     pub fn mean(self) -> f64 {
         if self.count == 0 {
-            std::f64::NAN
+            f64::NAN
         } else {
             self.mean
         }
@@ -34,7 +34,7 @@ impl StatsBuilder {
 
     pub fn sample_var(self) -> f64 {
         if self.count <= 1 {
-            std::f64::NAN
+            f64::NAN
         } else {
             self.m2 / (self.count - 1) as f64
         }

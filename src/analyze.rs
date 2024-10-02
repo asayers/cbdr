@@ -182,7 +182,7 @@ impl DiffCI {
     pub fn interval(self, sig_level: f64) -> (f64, f64) {
         let ci = match behrens_fisher::difference_of_means(sig_level, self.0, self.1) {
             Ok(x) => x,
-            Err(_) => return (std::f64::NAN, std::f64::NAN),
+            Err(_) => return (f64::NAN, f64::NAN),
         };
         let left = 100. * (ci.center - ci.radius) / self.0.mean;
         let right = 100. * (ci.center + ci.radius) / self.0.mean;

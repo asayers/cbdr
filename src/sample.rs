@@ -133,7 +133,7 @@ impl<T: Write> CsvWriter<T> {
     fn write_csv(&mut self, bench: &str, values: &BTreeMap<String, f64>) -> Result<()> {
         write!(self.out, "{}", bench)?;
         for stat in &self.stats {
-            write!(self.out, ",{}", values.get(stat).unwrap_or(&std::f64::NAN))?;
+            write!(self.out, ",{}", values.get(stat).unwrap_or(&f64::NAN))?;
         }
         self.out.write_all(b"\n")?;
         Ok(())
