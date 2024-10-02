@@ -6,8 +6,8 @@ use crossterm::tty::IsTty;
 use log::*;
 use std::time::*;
 
-/// For each pair of benchmarks (x and y), shows, for each metric (̄x
-/// and ̄y), the CI of (̄y - ̄x) / ̄x
+/// For each pair of benchmarks (x and y), shows, for each metric (x̄
+/// and ȳ), the CI of (ȳ - x̄) / x̄
 #[derive(Bpaf)]
 pub struct Options {
     /// The significance level of the confidence intervals
