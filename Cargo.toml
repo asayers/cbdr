@@ -14,20 +14,20 @@ members = ["behrens-fisher"]
 [dependencies]
 ansi_term = "0.12"
 anyhow = "1.0"
-arc-swap = "1.0"
+arc-swap = "1.7"
 behrens-fisher = "0.2.0"
 bpaf = { version = "0.9.14", features = ["derive"] }
 crossterm = "0.22.1"
-csv = "1.1"
+csv = "1.3"
 env_logger = "0.9"
-humantime = "2.0"
+humantime = "2.1"
 liveterm = "0.3.0"
 log = "0.4"
-once_cell = "1.2"
+once_cell = "1.20"
 rand = "0.8"
 serde = "1.0"
 serde_json = "1.0"
-tabwriter = { version = "1.1", features = ["ansi_formatting"] }
+tabwriter = { version = "1.4", features = ["ansi_formatting"] }
 time-cmd = "0.1"
 
 [profile.release]
