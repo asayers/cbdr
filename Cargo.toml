@@ -8,6 +8,9 @@ license = "Unlicense"
 readme = "cbdr.md"
 repository = "https://github.com/asayers/cbdr"
 
+[workspace]
+members = ["behrens-fisher"]
+
 [dependencies]
 ansi_term = "0.12"
 anyhow = "1.0"
