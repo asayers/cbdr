@@ -1,10 +1,10 @@
 use ansi_term::{Color, Style};
 use arc_swap::ArcSwap;
-use once_cell::sync::{Lazy, OnceCell};
 use serde::{Serialize, Serializer};
 use std::fmt;
+use std::sync::{LazyLock, OnceLock};
 
-static BENCH_CACHE: Lazy<ArcSwap<Vec<String>>> = Lazy::new(ArcSwap::default);
+static BENCH_CACHE: LazyLock<ArcSwap<Vec<String>>> = LazyLock::new(ArcSwap::default);
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Copy)]
 pub struct Bench(pub usize);
@@ -55,7 +55,7 @@ pub fn all_benches() -> impl Iterator<Item = Bench> {
     (0..BENCH_CACHE.load().len()).map(Bench)
 }
 
-static METRIC_CACHE: OnceCell<Vec<String>> = OnceCell::new();
+static METRIC_CACHE: OnceLock<Vec<String>> = OnceLock::new();
 
 pub fn init_metrics(metrics: Vec<String>) {
     METRIC_CACHE.set(metrics).unwrap()
