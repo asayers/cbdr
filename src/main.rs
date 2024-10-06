@@ -4,10 +4,11 @@ mod plot;
 mod pretty;
 mod sample;
 
-use bpaf::{Bpaf, Parser};
+use bpaf::Bpaf;
 
 /// Tools for comparative benchmarking
 #[derive(Bpaf)]
+#[bpaf(options, fallback_to_usage)]
 enum Subcommand {
     Sample(#[bpaf(external(sample::options))] sample::Options),
     Analyze(#[bpaf(external(analyze::options))] analyze::Options),
